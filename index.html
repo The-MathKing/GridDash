@@ -583,14 +583,14 @@ const dy = [-1, 0, 1, 0];
 
 // --- UI Logic ---
 function showPanel(panelId) {
-    document.getElementById('mainMenuPanel').classList.remove('active');
-    document.getElementById('creditsPanel').classList.remove('active');
-    document.getElementById('optionsPanel').classList.remove('active');
-    document.getElementById('pausePanel').classList.remove('active');
-    document.getElementById('skinsAndMapsPanel').classList.remove('active');
+    ['mainMenuPanel', 'creditsPanel', 'optionsPanel', 'pausePanel', 'skinsAndMapsPanel'].forEach(id => {
+        let el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
     
     if (panelId) {
-        document.getElementById(panelId).classList.add('active');
+        let el = document.getElementById(panelId);
+        if (el) el.classList.add('active');
         uiLayer.classList.remove('hidden');
     } else {
         uiLayer.classList.add('hidden');
@@ -741,10 +741,15 @@ function updateStoreUI() {
         themeStatusDiv.innerText = 'Unlocked';
         themeStatusDiv.style.color = '#aaa';
         themeStatusDiv.style.display = 'block';
+        themeStatusDiv.style.fontSize = '';
+        themeStatusDiv.style.whiteSpace = 'normal';
     } else {
-        themeStatusDiv.innerText = 'Not Owned';
+        let remaining = theme.unlockScore - Math.floor(highScore);
+        themeStatusDiv.innerText = `Unlocks in ${remaining} traveled`;
         themeStatusDiv.style.color = '#f00';
         themeStatusDiv.style.display = 'block';
+        themeStatusDiv.style.fontSize = '12px';
+        themeStatusDiv.style.whiteSpace = 'nowrap';
     }
     try { localStorage.setItem('pathlockTheme', currentThemeIndex); } catch (e) {}
 
@@ -1982,8 +1987,6 @@ function draw() {
         ctx.shadowBlur = 25;
         ctx.shadowColor = skin.color;
         drawSkinPattern(ctx, skin, runner.col * 150 + 75, runner.row * 150 + 75, 1, 0);
-        ctx.restore();
-    }
         ctx.restore();
     }
     
