@@ -360,26 +360,26 @@
 
         <!-- Options Panel -->
         <div id="optionsPanel" class="panel">
-            <h1>Options</h1>
+            <h1 style="margin-top: -30px;">Options</h1>
             
             <div style="margin-bottom: 20px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #0ff;">
                 <h3 style="margin-top: 0; color: #0ff;">Audio</h3>
-                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
                     Mute Sounds
-                    <input type="checkbox" id="muteToggle" style="width: 20px; height: 20px;">
-                </label>
+                    <button id="muteToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
+                </div>
                 <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff;">
-                    Master Volume
-                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 150px; margin: 0;">
+                    Master Volume <span id="volumeValueText" style="margin-left: 10px; font-size: 14px; width: 30px; text-align: right;">50</span>
+                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 120px; margin: 0;">
                 </label>
             </div>
             
             <div style="margin-bottom: 30px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #f0f;">
                 <h3 style="margin-top: 0; color: #f0f;">Developer Settings</h3>
-                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
                     Unlock All Skins
-                    <input type="checkbox" id="devUnlockToggle" style="width: 20px; height: 20px;">
-                </label>
+                    <button id="devUnlockToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
+                </div>
                 <div style="display: flex; flex-direction: column; font-size: 18px; color: #fff;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         Custom Speed <span id="devSpeedText">150</span>
@@ -530,12 +530,20 @@ const diffMap = [
     { text: 'Nightmare: 3.0x', speed: 300 }
 ];
 
-difficultySlider.addEventListener('input', (e) => {
-    difficultyText.innerText = diffMap[e.target.value].text;
-});
+function updateDifficultyText() {
+    if (customSpeedOverride) {
+        difficultySlider.disabled = true;
+        difficultyText.innerText = "Custom: " + customSpeedOverride;
+    } else {
+        difficultySlider.disabled = false;
+        difficultyText.innerText = diffMap[difficultySlider.value].text;
+    }
+}
+
+difficultySlider.addEventListener('input', updateDifficultyText);
 
 // Set default starting point for UI text (Value = 1 from HTML)
-difficultyText.innerText = diffMap[difficultySlider.value].text;
+updateDifficultyText();
 
 
 // --- UI Logic ---
@@ -735,18 +743,26 @@ document.getElementById('closeOptionsBtn').addEventListener('click', () => {
     showPanel('mainMenuPanel');
 });
 
-document.getElementById('muteToggle').addEventListener('change', (e) => {
-    isMuted = e.target.checked;
+let muteToggleBtn = document.getElementById('muteToggleBtn');
+muteToggleBtn.addEventListener('click', () => {
+    isMuted = !isMuted;
+    muteToggleBtn.innerText = isMuted ? "ON" : "OFF";
+    muteToggleBtn.style.color = isMuted ? "#0ff" : "#aaa";
     if (bgmGain) bgmGain.gain.setTargetAtTime(isMuted ? 0 : masterVolume * 0.4, audioCtx.currentTime, 0.1);
 });
 
+let volumeValueText = document.getElementById('volumeValueText');
 document.getElementById('volumeSlider').addEventListener('input', (e) => {
     masterVolume = parseFloat(e.target.value);
+    volumeValueText.innerText = Math.round(masterVolume * 100);
     if (!isMuted && bgmGain) bgmGain.gain.setTargetAtTime(masterVolume * 0.4, audioCtx.currentTime, 0.1);
 });
 
-document.getElementById('devUnlockToggle').addEventListener('change', (e) => {
-    devUnlockAll = e.target.checked;
+let devUnlockToggleBtn = document.getElementById('devUnlockToggleBtn');
+devUnlockToggleBtn.addEventListener('click', () => {
+    devUnlockAll = !devUnlockAll;
+    devUnlockToggleBtn.innerText = devUnlockAll ? "ON" : "OFF";
+    devUnlockToggleBtn.style.color = devUnlockAll ? "#f0f" : "#aaa";
     updateSkinUI();
 });
 
@@ -754,6 +770,7 @@ document.getElementById('devSpeedSlider').addEventListener('input', (e) => {
     let spd = parseInt(e.target.value);
     document.getElementById('devSpeedText').innerText = spd;
     customSpeedOverride = spd;
+    updateDifficultyText();
     if (gameState === 'PLAYING') {
         baseSpeed = spd;
         speed = spd;
@@ -1245,17 +1262,29 @@ function update(dt) {
             distToMove = 0;
             
             if (grid.has(runner.col - 4)) grid.delete(runner.col - 4);
-        } else {
+            let nextCol = runner.col + dx[exitSide];
+            let nextRow = runner.row + dy[exitSide];
+            let nextEntrySide = (exitSide + 2) % 4;
+
+            if (isTutorial && tutorialStep === 0 && runner.col === 1) {
+                let nextTileObj = grid.get(nextCol) ? grid.get(nextCol)[nextRow] : null;
+                if (nextTileObj && !nextTileObj.sides.includes(nextEntrySide)) {
+                    gameState = 'TUTORIAL_PAUSE';
+                    runner.distance = pathLength; // Snap to the end of the tile
+                    distToMove = 0;
+                    let overlay = document.getElementById('countdownOverlay');
+                    overlay.style.display = 'block';
+                    overlay.innerText = "Rotate the next tile\nto connect the path!";
+                    return;
+                }
+            }
+
             distToMove -= remainingPath;
             score += remainingPath * 0.1;
             
             tObj.falling = true;
             tObj.fallVy = 0;
             tObj.fallY = 0;
-            
-            let nextCol = runner.col + dx[exitSide];
-            let nextRow = runner.row + dy[exitSide];
-            let nextEntrySide = (exitSide + 2) % 4;
             
             if (nextRow < 0 || nextRow >= 3) {
                 crashRunner(exitSide);
@@ -1286,16 +1315,6 @@ function update(dt) {
             ensureColumns(nextCol + 6);
             
             let nextTileObj = grid.get(nextCol)[nextRow];
-            
-            if (isTutorial && tutorialStep === 0 && runner.col === 1 && remainingPath - distToMove < 20) {
-                if (!nextTileObj.sides.includes(nextEntrySide)) {
-                    gameState = 'TUTORIAL_PAUSE';
-                    let overlay = document.getElementById('countdownOverlay');
-                    overlay.style.display = 'block';
-                    overlay.innerText = "Rotate the next tile\nto connect the path!";
-                    return;
-                }
-            }
             
             if (!nextTileObj.sides.includes(nextEntrySide)) {
                 crashRunner(exitSide);
