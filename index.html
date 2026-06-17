@@ -391,9 +391,9 @@
             </div>
             
             <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; width: 100%;">
-                <button id="box5Btn" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #aaa; background: rgba(0,0,0,0.5); color: #aaa; border-radius: 5px; flex: 1;">Common<br><span style="color:#ffd700;">5 Coins</span></button>
-                <button id="box10Btn" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 5px; flex: 1;">Uncommon<br><span style="color:#ffd700;">10 Coins</span></button>
-                <button id="box25Btn" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #f0f; background: rgba(0,0,0,0.5); color: #f0f; border-radius: 5px; flex: 1;">Rare<br><span style="color:#ffd700;">25 Coins</span></button>
+                <button id="box5Btn" title="Chances: 90% Common, 10% Uncommon" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #aaa; background: rgba(0,0,0,0.5); color: #aaa; border-radius: 5px; flex: 1;">Common<br><span style="color:#ffd700;">5 Coins</span></button>
+                <button id="box10Btn" title="Chances: 30% Common, 60% Uncommon, 10% Rare" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 5px; flex: 1;">Uncommon<br><span style="color:#ffd700;">10 Coins</span></button>
+                <button id="box25Btn" title="Chances: 30% Uncommon, 70% Rare" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #f0f; background: rgba(0,0,0,0.5); color: #f0f; border-radius: 5px; flex: 1;">Rare<br><span style="color:#ffd700;">25 Coins</span></button>
             </div>
             <div id="boxResultText" style="height: 20px; margin-bottom: 10px; font-size: 16px; color: #fff;"></div>
             
@@ -832,9 +832,14 @@ function renderInventory() {
     skins.forEach((skin, idx) => {
         let isUnlocked = devUnlockAll || unlockedSkins.includes(idx);
         let itemDiv = document.createElement('div');
+        
+        let rarityColor = '#aaa'; // Common 1-7 (0-6)
+        if (idx >= 7 && idx <= 13) rarityColor = '#0ff'; // Uncommon 8-14 (7-13)
+        if (idx >= 14) rarityColor = '#f0f'; // Rare 15-19 (14-18)
+        
         itemDiv.style.width = '100%';
         itemDiv.style.aspectRatio = '1';
-        itemDiv.style.border = '1px solid #aaa';
+        itemDiv.style.border = `2px solid ${rarityColor}`;
         itemDiv.style.borderRadius = '3px';
         itemDiv.style.position = 'relative';
         itemDiv.style.cursor = 'pointer';
@@ -975,6 +980,29 @@ function spawnUIConfetti() {
         }, 30);
     }
 }
+
+function updateUIAnimations() {
+    if (gameState === 'MENU') {
+        let skin = skins[currentSkinIndex];
+        let skinCtx = document.getElementById('skinPreviewCanvas').getContext('2d');
+        skinCtx.clearRect(0, 0, 40, 40);
+        drawSkinPattern(skinCtx, skin, 20, 20, 1.2, 0);
+    } else if (gameState === 'SKINSMAPS') {
+        let grid = document.getElementById('inventoryGrid');
+        if (grid) {
+            let canvases = grid.querySelectorAll('canvas');
+            canvases.forEach((cvs, idx) => {
+                let skin = skins[idx];
+                let ctx = cvs.getContext('2d');
+                ctx.clearRect(0, 0, 40, 40);
+                drawSkinPattern(ctx, skin, 20, 20, 1.2, 0);
+            });
+        }
+    }
+    requestAnimationFrame(updateUIAnimations);
+}
+requestAnimationFrame(updateUIAnimations);
+
 // --- End Skins & Maps Logic ---
 
 document.getElementById('optionsBtn').addEventListener('click', () => {
@@ -1112,22 +1140,28 @@ function startBGM() {
         let t = audioCtx.currentTime + 0.05;
         let chord = chords[currentChordIdx % chords.length];
         
+        let intensity = (gameState === 'PLAYING') ? Math.min(1.0, score / 2000) : 0;
+        let arpSpeed = (beatPattern === 'arcade' || intensity > 0.5) ? 0.125 : 0.25;
+        
         chord.forEach((freq, idx) => {
             let osc = audioCtx.createOscillator();
             osc.type = waveType;
-            let arpOffset = beatPattern === 'arcade' ? idx * 0.125 : 0;
-            osc.frequency.setValueAtTime(freq, t + arpOffset);
+            let arpOffset = (beatPattern === 'arcade' || intensity > 0.3) ? idx * arpSpeed : 0;
+            
+            let modFreq = freq * (1 + (intensity * 0.02 * Math.sin(t * 2)));
+            osc.frequency.setValueAtTime(modFreq, t + arpOffset);
+            
             let env = audioCtx.createGain();
             env.gain.setValueAtTime(0, t + arpOffset);
             
             if (beatPattern === 'ambient') {
-                env.gain.linearRampToValueAtTime(0.1, t + 1.0);
+                env.gain.linearRampToValueAtTime(0.1 + intensity*0.1, t + 1.0);
                 env.gain.linearRampToValueAtTime(0, t + tempo);
-            } else if (beatPattern === 'arcade') {
-                env.gain.linearRampToValueAtTime(0.05, t + arpOffset + 0.05);
+            } else if (beatPattern === 'arcade' || intensity > 0.5) {
+                env.gain.linearRampToValueAtTime(0.05 + intensity*0.05, t + arpOffset + 0.05);
                 env.gain.exponentialRampToValueAtTime(0.001, t + arpOffset + 0.25);
             } else {
-                env.gain.linearRampToValueAtTime(0.1, t + 0.2);
+                env.gain.linearRampToValueAtTime(0.1 + intensity*0.1, t + 0.2);
                 env.gain.exponentialRampToValueAtTime(0.01, t + tempo - 0.1);
             }
             
@@ -1137,12 +1171,12 @@ function startBGM() {
             osc.stop(t + (beatPattern === 'ambient' ? tempo : (beatPattern === 'arcade' ? 0.3 : tempo)));
         });
         
-        if (beatPattern === 'lofi' || beatPattern === 'arcade' || beatPattern === 'intense') {
+        if (beatPattern === 'lofi' || beatPattern === 'arcade' || beatPattern === 'intense' || intensity > 0.2) {
             let kickOsc = audioCtx.createOscillator();
             let kickGain = audioCtx.createGain();
-            kickOsc.frequency.setValueAtTime(beatPattern === 'arcade' ? 200 : 150, t);
+            kickOsc.frequency.setValueAtTime((beatPattern === 'arcade' || intensity > 0.6) ? 200 : 150, t);
             kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
-            kickGain.gain.setValueAtTime(0.4, t);
+            kickGain.gain.setValueAtTime(0.4 + intensity*0.2, t);
             kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
             kickOsc.connect(kickGain);
             kickGain.connect(bgmGain);
@@ -1150,19 +1184,32 @@ function startBGM() {
             kickOsc.stop(t + 0.1);
         }
         
-        if (beatPattern === 'lofi') {
+        if (beatPattern === 'lofi' || intensity > 0.4) {
             let snareT = t + tempo/2;
             let snareOsc = audioCtx.createOscillator();
             let snareGain = audioCtx.createGain();
             snareOsc.type = 'square';
-            snareOsc.frequency.setValueAtTime(800, snareT);
+            snareOsc.frequency.setValueAtTime(800 + intensity*400, snareT);
             snareOsc.frequency.exponentialRampToValueAtTime(100, snareT + 0.1);
-            snareGain.gain.setValueAtTime(0.1, snareT);
+            snareGain.gain.setValueAtTime(0.1 + intensity*0.1, snareT);
             snareGain.gain.exponentialRampToValueAtTime(0.01, snareT + 0.1);
             snareOsc.connect(snareGain);
             snareGain.connect(bgmGain);
             snareOsc.start(snareT);
             snareOsc.stop(snareT + 0.1);
+        }
+        
+        if (intensity > 0.3 && currentChordIdx % 2 === 0) {
+            let bassOsc = audioCtx.createOscillator();
+            let bassGain = audioCtx.createGain();
+            bassOsc.type = 'sawtooth';
+            bassOsc.frequency.setValueAtTime(chord[0] / 2, t);
+            bassGain.gain.setValueAtTime(0.2, t);
+            bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            bassOsc.connect(bassGain);
+            bassGain.connect(bgmGain);
+            bassOsc.start(t);
+            bassOsc.stop(t + 0.2);
         }
         
         currentChordIdx++;
@@ -1482,7 +1529,7 @@ function crashRunner(exitSide) {
     
     spawnParticles(pos.x, pos.y, 30, skins[currentSkinIndex].color, 300, 1.0, true);
     
-    if (score > highScore) {
+    if (!isTutorial && score > highScore) {
         highScore = score;
         try { localStorage.setItem('pathlockHighScore', highScore); } catch (e) {}
     }
