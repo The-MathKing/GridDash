@@ -907,7 +907,12 @@ function startBGM() {
         waveType = 'triangle';
         beatPattern = 'lofi';
     } else if (trackIndex === 1) { // Arcade Fast
-        chords = [ [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88] ];
+        chords = [ 
+            [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88],
+            [440, 523.25, 659.25], [349.23, 440, 523.25], [493.88, 587.33, 739.99], [392, 493.88, 587.33],
+            [349.23, 440, 523.25], [329.63, 392, 493.88], [440, 523.25, 659.25], [493.88, 587.33, 739.99],
+            [523.25, 659.25, 880], [493.88, 587.33, 739.99], [440, 523.25, 659.25], [392, 493.88, 587.33]
+        ];
         tempo = 0.5;
         waveType = 'square';
         beatPattern = 'arcade';
@@ -1479,7 +1484,7 @@ function update(dt) {
                 return;
             }
             
-            if (isTutorial && nextCol > 3) {
+            if (isTutorial && nextCol > highestColGenerated) {
                 gameState = 'MENU';
                 showPanel('mainMenuPanel');
                 document.getElementById('scoreDisplay').style.display = 'none';
