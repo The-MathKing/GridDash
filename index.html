@@ -254,6 +254,24 @@
 
 
 
+    .progress-bar-container {
+        width: 200px;
+        height: 6px;
+        background: #223;
+        margin-top: 5px;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    #scoreProgressBar {
+        width: 0%;
+        height: 100%;
+        background: #0ff;
+        transition: width 0.1s linear;
+    }
+    .progress-glow {
+        box-shadow: 0 0 15px #0ff !important;
+    }
+
     /* Loading Screen */
     #loadingScreen {
         position: absolute;
@@ -273,20 +291,27 @@
         margin-bottom: 20px;
         text-shadow: 0 0 15px #0ff;
     }
-    .loading-bar-container {
+    .loading-track {
         width: 300px;
-        height: 10px;
-        background: #111;
-        border: 1px solid #333;
-        border-radius: 5px;
-        overflow: hidden;
+        height: 4px;
+        background: #223;
+        position: relative;
+        border-radius: 2px;
     }
-    #loadingBar {
-        width: 0%;
-        height: 100%;
+    .loading-runner {
+        position: absolute;
+        top: -8px;
+        left: 0;
+        width: 20px;
+        height: 20px;
         background: #0ff;
-        box-shadow: 0 0 10px #0ff;
-        transition: width 0.1s linear;
+        box-shadow: 0 0 15px #0ff;
+        animation: loadingRun 1.5s infinite ease-in-out;
+    }
+    @keyframes loadingRun {
+        0% { left: 0; transform: rotate(0deg); }
+        50% { left: 280px; transform: rotate(180deg); }
+        100% { left: 0; transform: rotate(360deg); }
     }
 </style>
 </head>
@@ -295,8 +320,14 @@
 <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
     
-    <div id="scoreDisplay" class="hud" style="display: none;">Score: 0</div>
+    <div id="scoreDisplay" class="hud" style="display: none;">
+        <div id="scoreText">Score: 0</div>
+        <div class="progress-bar-container">
+            <div id="scoreProgressBar"></div>
+        </div>
+    </div>
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
+    <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
     
     <div id="uiLayer">
         <!-- Main Menu Panel -->
@@ -343,19 +374,28 @@
         <div id="creditsPanel" class="panel">
             <h1>Credits</h1>
             <div class="stats" style="margin-bottom: 30px;">
-                <span>Created by Antigravity</span><br><br>
+                <span>Created by Thummo Studios, inspired by Vienna</span><br><br>
                 Music & Sound: Web Audio API<br>
                 Graphics: Canvas 2D<br>
                 Design: Indie Developer
             </div>
             <button id="backToMenuBtn" class="secondary-btn">Back</button>
         </div>
+
+        <!-- Pause Panel -->
+        <div id="pausePanel" class="panel">
+            <h1>Paused</h1>
+            <div class="btn-group" style="margin-top: 40px;">
+                <button id="resumeBtn">Resume</button>
+                <button id="quitBtn" class="secondary-btn">Quit</button>
+            </div>
+        </div>
     </div>
     
     <div id="loadingScreen">
         <div class="loading-text">LOADING...</div>
-        <div class="loading-bar-container">
-            <div id="loadingBar"></div>
+        <div class="loading-track">
+            <div class="loading-runner"></div>
         </div>
     </div>
 </div>
@@ -370,8 +410,13 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const highScoreDisplay = document.getElementById('highScoreDisplay');
 const loadingScreen = document.getElementById('loadingScreen');
 
-let gameState = 'LOADING'; // LOADING, MENU, TUTORIAL, CREDITS, PLAYING, GAMEOVER
+let gameState = 'LOADING'; // LOADING, MENU, TUTORIAL, CREDITS, PLAYING, GAMEOVER, PAUSED, COUNTDOWN
 let grid = new Map();
+let particles = [];
+let shakeTime = 0;
+let shakeMagnitude = 0;
+let lastBeatTime = 0;
+let nextMilestone = 500;
 let nextValidRow = 1;
 let highestColGenerated = -1;
 
@@ -562,27 +607,91 @@ function playTone(freq, type, duration, vol=0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
+function playSweep(startFreq, endFreq, type, duration, vol=0.1) {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+function playMilestone() {
+    setTimeout(() => playTone(523.25, 'sine', 0.15, 0.15), 0); // C5
+    setTimeout(() => playTone(659.25, 'sine', 0.15, 0.15), 150); // E5
+    setTimeout(() => playTone(783.99, 'sine', 0.3, 0.15), 300); // G5
+}
+
+function spawnParticles(x, y, count, color, speedVal, lifeTime, isExplosion = false) {
+    for (let i = 0; i < count; i++) {
+        let angle = isExplosion ? Math.random() * Math.PI * 2 : (Math.random() - 0.5) * Math.PI;
+        let v = (Math.random() * 0.5 + 0.5) * speedVal;
+        particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * v,
+            vy: Math.sin(angle) * v,
+            life: lifeTime,
+            maxLife: lifeTime,
+            color: color,
+            size: isExplosion ? Math.random() * 4 + 2 : Math.random() * 2 + 1
+        });
+    }
+}
+
 // --- Loading Sequence ---
 window.onload = () => {
-    let loadProgress = 0;
-    let loadInterval = setInterval(() => {
-        loadProgress += Math.random() * 15;
-        if (loadProgress >= 100) {
-            loadProgress = 100;
-            clearInterval(loadInterval);
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    gameState = 'MENU';
-                    updateSkinUI();
-                    showPanel('mainMenuPanel');
-                }, 500);
-            }, 300);
-        }
-        document.getElementById('loadingBar').style.width = loadProgress + '%';
-    }, 100);
+    setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            gameState = 'MENU';
+            updateSkinUI();
+            showPanel('mainMenuPanel');
+        }, 500);
+    }, 1500);
 };
+
+// --- Pause Logic ---
+document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+document.getElementById('quitBtn').addEventListener('click', () => {
+    gameState = 'MENU';
+    showPanel('mainMenuPanel');
+    scoreDisplay.style.display = 'none';
+    highScoreDisplay.style.display = 'none';
+    document.getElementById('countdownOverlay').style.display = 'none';
+});
+
+function resumeGame() {
+    showPanel(null);
+    gameState = 'COUNTDOWN';
+    let count = 3;
+    let overlay = document.getElementById('countdownOverlay');
+    overlay.style.display = 'block';
+    overlay.innerText = count;
+    playTone(600, 'sine', 0.1, 0.1);
+    
+    let interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            overlay.innerText = count;
+            playTone(600, 'sine', 0.1, 0.1);
+        } else {
+            clearInterval(interval);
+            overlay.innerText = 'GO!';
+            playTone(1200, 'sine', 0.2, 0.1);
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (gameState === 'COUNTDOWN') gameState = 'PLAYING';
+            }, 500);
+        }
+    }, 1000);
+}
 
 // --- Game Logic ---
 function getCorner(sideA, sideB) {
@@ -702,6 +811,11 @@ function crashRunner(exitSide) {
     runner.fallX = pos.x;
     runner.fallY = pos.y;
     
+    shakeTime = 0.4;
+    shakeMagnitude = 15;
+    
+    spawnParticles(pos.x, pos.y, 30, skins[currentSkinIndex].color, 300, 1.0, true);
+    
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('gridDashHighScore', highScore);
@@ -710,14 +824,14 @@ function crashRunner(exitSide) {
     setTimeout(() => {
         gameState = 'MENU';
         showPanel('mainMenuPanel');
-        scoreDisplay.style.display = 'none';
-        highScoreDisplay.style.display = 'none';
+        document.getElementById('scoreDisplay').style.display = 'none';
+        document.getElementById('highScoreDisplay').style.display = 'none';
         
         document.getElementById('lastScoreDisplay').style.display = 'block';
         document.getElementById('lastScoreValue').innerText = Math.floor(score);
         
         updateSkinUI(); // Unlock new skins if high score increased
-    }, 1200);
+    }, 1500);
 }
 
 function getRunnerXY() {
@@ -755,6 +869,19 @@ function getRunnerXY() {
 }
 
 function update(dt) {
+    if (shakeTime > 0) {
+        shakeTime -= dt;
+        if (shakeTime < 0) shakeTime = 0;
+    }
+    
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+
     if (gameState === 'GAMEOVER') {
         runner.fallX += runner.vx * dt;
         runner.fallY += runner.vy * dt;
@@ -771,6 +898,16 @@ function update(dt) {
     let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
     speed = baseSpeed + (baseSpeed * 0.1) * Math.floor(blocksTraveled / 100);
     
+    let currentBeatInterval = Math.max(0.2, 100 / speed);
+    lastBeatTime += dt;
+    if (lastBeatTime > currentBeatInterval) {
+        lastBeatTime = 0;
+        playTone(60, 'sine', 0.1, 0.2);
+    }
+    
+    let pos = getRunnerXY();
+    spawnParticles(pos.x, pos.y, 1, skins[currentSkinIndex].color, 20, 0.5, false);
+
     while (distToMove > 0) {
         let tileCol = grid.get(runner.col);
         let tObj = tileCol[runner.row];
@@ -791,7 +928,7 @@ function update(dt) {
         if (distToMove <= remainingPath) {
             runner.distance += distToMove;
             score += distToMove * 0.1;
-            scoreDisplay.innerText = `Score: ${Math.floor(score)}`;
+            document.getElementById('scoreText').innerText = `Score: ${Math.floor(score)}`;
             distToMove = 0;
             
             if (grid.has(runner.col - 4)) grid.delete(runner.col - 4);
@@ -823,7 +960,22 @@ function update(dt) {
         }
     }
     
-    let pos = getRunnerXY();
+    if (score >= nextMilestone) {
+        playMilestone();
+        nextMilestone += 500;
+    }
+    
+    let progressPct = highScore > 0 ? (score / highScore) * 100 : (score / 1000) * 100;
+    if (progressPct > 100) progressPct = 100;
+    let pb = document.getElementById('scoreProgressBar');
+    pb.style.width = progressPct + '%';
+    if (progressPct >= 100 && score > 0) {
+        pb.classList.add('progress-glow');
+    } else {
+        pb.classList.remove('progress-glow');
+    }
+
+    pos = getRunnerXY();
     let targetCameraX = pos.x - 150; 
     cameraX += (targetCameraX - cameraX) * 10 * dt;
 }
@@ -901,9 +1053,26 @@ function draw() {
     let scale = canvas.height / 450;
     ctx.scale(scale, scale);
     
+    if (shakeTime > 0) {
+        ctx.translate((Math.random() - 0.5) * shakeMagnitude, (Math.random() - 0.5) * shakeMagnitude);
+    }
+    
     let virtualWidth = canvas.width / scale;
     
     ctx.translate(-cameraX, 0);
+    
+    // Parallax Grid
+    ctx.save();
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.05)";
+    ctx.lineWidth = 2;
+    let pgOffsetX = (cameraX * 0.5) % 150;
+    for (let x = cameraX - pgOffsetX - 150; x < cameraX + virtualWidth + 150; x += 150) {
+        ctx.beginPath(); ctx.moveTo(x, -500); ctx.lineTo(x, 1000); ctx.stroke();
+    }
+    for (let y = -150; y < 600; y += 150) {
+        ctx.beginPath(); ctx.moveTo(cameraX - 150, y); ctx.lineTo(cameraX + virtualWidth + 150, y); ctx.stroke();
+    }
+    ctx.restore();
     
     let startCol = Math.floor(cameraX / 150);
     let endCol = startCol + Math.ceil(virtualWidth / 150) + 1;
@@ -918,7 +1087,18 @@ function draw() {
         }
     }
     
-    if (gameState === 'PLAYING') {
+    // Draw Particles
+    particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+        ctx.restore();
+    });
+    
+    if (gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'COUNTDOWN') {
         let pos = getRunnerXY();
         let skin = skins[currentSkinIndex];
         
@@ -992,7 +1172,8 @@ function handleInteraction(e) {
         tObj.sides[0] = (tObj.sides[0] + 1) % 4;
         tObj.sides[1] = (tObj.sides[1] + 1) % 4;
         
-        playTone(800, 'sine', 0.05, 0.05);
+        playSweep(800, 400, 'sine', 0.1, 0.05);
+        spawnParticles(col * 150 + 75, row * 150 + 75, 10, '#fff', 150, 0.3, true);
     }
 }
 
@@ -1002,6 +1183,14 @@ canvas.addEventListener('touchstart', handleInteraction, {passive: false});
 document.getElementById('mainButton').addEventListener('click', prepareStartGame);
 
 window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+        if (gameState === 'PLAYING') {
+            gameState = 'PAUSED';
+            showPanel('pausePanel');
+        } else if (gameState === 'PAUSED') {
+            resumeGame();
+        }
+    }
     if ((e.code === 'Space' || e.code === 'Enter') && !uiLayer.classList.contains('hidden')) {
         if (gameState === 'MENU' && !document.getElementById('mainButton').disabled) {
             prepareStartGame();
