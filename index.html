@@ -317,6 +317,7 @@
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
     <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
     <button id="fullscreenBtn" style="position: absolute; top: 20px; right: 20px; z-index: 100; font-size: 24px; padding: 5px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">⛶</button>
+    <button id="reloadTutorialBtn" style="display: none; position: absolute; top: 20px; right: 80px; z-index: 100; font-size: 16px; padding: 8px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">Reload Tutorial</button>
     
     <div id="uiLayer">
         <!-- Main Menu Panel -->
@@ -331,17 +332,38 @@
                 Coins: <span id="menuCoinValue">0</span>
             </div>
             
-            <div class="skin-selector">
-                <button id="prevSkinBtn" class="arrow-btn">&lt;</button>
-                <div class="skin-display">
-                    <div class="skin-box-container">
-                        <canvas id="skinPreviewCanvas" class="skin-canvas" width="40" height="40"></canvas>
+            <div style="display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 500px;">
+                <div class="skin-selector" style="flex: 1;">
+                    <div style="color: #0ff; margin-bottom: 5px; font-size: 14px; text-transform: uppercase;">Skin</div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <button id="prevSkinBtn" class="arrow-btn">&lt;</button>
+                        <div class="skin-display">
+                            <div class="skin-box-container">
+                                <canvas id="skinPreviewCanvas" class="skin-canvas" width="40" height="40"></canvas>
+                            </div>
+                            <div id="skinName">Classic Square</div>
+                            <div id="skinStatus" style="margin-bottom: 5px;">Unlocked</div>
+                            <button id="buySkinBtn" style="display: none; padding: 5px 10px; font-size: 14px; cursor: pointer; border: 1px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 3px;">Buy</button>
+                        </div>
+                        <button id="nextSkinBtn" class="arrow-btn">&gt;</button>
                     </div>
-                    <div id="skinName">Classic Square</div>
-                    <div id="skinStatus" style="margin-bottom: 5px;">Unlocked</div>
-                    <button id="buySkinBtn" style="display: none; padding: 5px 10px; font-size: 14px; cursor: pointer; border: 1px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 3px;">Buy</button>
                 </div>
-                <button id="nextSkinBtn" class="arrow-btn">&gt;</button>
+                
+                <div class="skin-selector" style="flex: 1;">
+                    <div style="color: #0ff; margin-bottom: 5px; font-size: 14px; text-transform: uppercase;">Theme</div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <button id="prevThemeBtn" class="arrow-btn">&lt;</button>
+                        <div class="skin-display">
+                            <div class="skin-box-container" style="border: 1px solid #fff;">
+                                <div id="themePreviewBox" style="width: 100%; height: 100%; background: #0ff;"></div>
+                            </div>
+                            <div id="themeName">Neon Cyber</div>
+                            <div id="themeStatus" style="margin-bottom: 5px;">Unlocked</div>
+                            <button id="buyThemeBtn" style="display: none; padding: 5px 10px; font-size: 14px; cursor: pointer; border: 1px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 3px;">Buy</button>
+                        </div>
+                        <button id="nextThemeBtn" class="arrow-btn">&gt;</button>
+                    </div>
+                </div>
             </div>
             
             <div class="difficulty-selector">
@@ -364,6 +386,10 @@
             
             <div style="margin-bottom: 20px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #0ff;">
                 <h3 style="margin-top: 0; color: #0ff;">Audio</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                    Soundtrack
+                    <button id="soundtrackSelectBtn" style="width: 100px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #fff; border: 1px solid #aaa; cursor: pointer;">Lo-Fi Chill</button>
+                </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
                     Mute Sounds
                     <button id="muteToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
@@ -506,11 +532,29 @@ let currentSkinIndex = 0;
 try { currentSkinIndex = parseInt(localStorage.getItem('pathlockSkin')) || 0; } catch (e) {}
 if (!unlockedSkins.includes(currentSkinIndex)) currentSkinIndex = 0;
 
-// Levels Setup
-const levels = [
-    { primaryColor: '#0ff', secondaryColor: '#088', shape: 'circle' }
+// Themes Setup
+const themes = [
+    { name: 'Neon Cyber', bgColor: '#0a0a10', pathColor: '#0ff', pathShadow: '#088', particleColor: '#0ff', price: 0 },
+    { name: 'Retro Synth', bgColor: '#1a0b2e', pathColor: '#f0f', pathShadow: '#808', particleColor: '#f0f', price: 20 },
+    { name: 'Toxic Waste', bgColor: '#0d1a0d', pathColor: '#0f0', pathShadow: '#080', particleColor: '#0f0', price: 40 },
+    { name: 'Crimson Hell', bgColor: '#1a0505', pathColor: '#f00', pathShadow: '#800', particleColor: '#f00', price: 60 },
+    { name: 'Arctic Ice', bgColor: '#001122', pathColor: '#fff', pathShadow: '#8df', particleColor: '#8df', price: 80 }
 ];
-let currentLevelIndex = 0;
+
+let unlockedThemes = [0];
+try { 
+    let stored = localStorage.getItem('pathlockUnlockedThemes');
+    if (stored) unlockedThemes = JSON.parse(stored);
+} catch (e) {}
+
+let currentThemeIndex = 0;
+try { currentThemeIndex = parseInt(localStorage.getItem('pathlockTheme')) || 0; } catch (e) {}
+if (!unlockedThemes.includes(currentThemeIndex)) currentThemeIndex = 0;
+
+// Soundtrack Setup
+const soundtracks = ['Lo-Fi Chill', 'Arcade Fast', 'Ambient Dark'];
+let currentSoundtrackIndex = 0;
+try { currentSoundtrackIndex = parseInt(localStorage.getItem('pathlockSoundtrack')) || 0; } catch (e) {}
 
 const SIDE_POINTS = [
     {x: 75, y: 0}, {x: 150, y: 75}, {x: 75, y: 150}, {x: 0, y: 75}
@@ -658,7 +702,8 @@ function drawSkinPattern(context, skin, x, y, scale = 1, rotation = 0) {
     context.restore();
 }
 
-function updateSkinUI() {
+function updateStoreUI() {
+    // Skins UI
     let skin = skins[currentSkinIndex];
     document.getElementById('skinName').innerText = skin.name;
     
@@ -668,49 +713,83 @@ function updateSkinUI() {
     
     document.getElementById('menuCoinValue').innerText = coins;
     
-    let isUnlocked = devUnlockAll || unlockedSkins.includes(currentSkinIndex);
-    let buyBtn = document.getElementById('buySkinBtn');
-    let statusDiv = document.getElementById('skinStatus');
-    let startBtn = document.getElementById('mainButton');
+    let isSkinUnlocked = devUnlockAll || unlockedSkins.includes(currentSkinIndex);
+    let buySkinBtn = document.getElementById('buySkinBtn');
+    let skinStatusDiv = document.getElementById('skinStatus');
     
-    if (isUnlocked) {
-        statusDiv.innerText = 'Unlocked';
-        statusDiv.style.color = '#aaa';
-        statusDiv.style.display = 'block';
-        buyBtn.style.display = 'none';
-        
+    if (isSkinUnlocked) {
+        skinStatusDiv.innerText = 'Unlocked';
+        skinStatusDiv.style.color = '#aaa';
+        skinStatusDiv.style.display = 'block';
+        buySkinBtn.style.display = 'none';
+    } else {
+        skinStatusDiv.style.display = 'none';
+        buySkinBtn.style.display = 'inline-block';
+        buySkinBtn.innerText = `Buy (${skin.price})`;
+        buySkinBtn.disabled = coins < skin.price;
+        buySkinBtn.style.opacity = buySkinBtn.disabled ? '0.5' : '1.0';
+    }
+    try { localStorage.setItem('pathlockSkin', currentSkinIndex); } catch (e) {}
+
+    // Themes UI
+    let theme = themes[currentThemeIndex];
+    document.getElementById('themeName').innerText = theme.name;
+    
+    let themeBox = document.getElementById('themePreviewBox');
+    themeBox.style.background = theme.bgColor;
+    themeBox.style.border = `2px solid ${theme.pathColor}`;
+    themeBox.style.boxShadow = `inset 0 0 10px ${theme.pathShadow}, 0 0 10px ${theme.pathShadow}`;
+    
+    let isThemeUnlocked = devUnlockAll || unlockedThemes.includes(currentThemeIndex);
+    let buyThemeBtn = document.getElementById('buyThemeBtn');
+    let themeStatusDiv = document.getElementById('themeStatus');
+    
+    if (isThemeUnlocked) {
+        themeStatusDiv.innerText = 'Unlocked';
+        themeStatusDiv.style.color = '#aaa';
+        themeStatusDiv.style.display = 'block';
+        buyThemeBtn.style.display = 'none';
+    } else {
+        themeStatusDiv.style.display = 'none';
+        buyThemeBtn.style.display = 'inline-block';
+        buyThemeBtn.innerText = `Buy (${theme.price})`;
+        buyThemeBtn.disabled = coins < theme.price;
+        buyThemeBtn.style.opacity = buyThemeBtn.disabled ? '0.5' : '1.0';
+    }
+    try { localStorage.setItem('pathlockTheme', currentThemeIndex); } catch (e) {}
+
+    let startBtn = document.getElementById('mainButton');
+    if (isSkinUnlocked && isThemeUnlocked) {
         startBtn.disabled = false;
         startBtn.innerText = 'Start Game';
     } else {
-        statusDiv.style.display = 'none';
-        buyBtn.style.display = 'inline-block';
-        buyBtn.innerText = `Buy (${skin.price} Coins)`;
-        buyBtn.disabled = coins < skin.price;
-        buyBtn.style.opacity = buyBtn.disabled ? '0.5' : '1.0';
-        
         startBtn.disabled = true;
         startBtn.innerText = 'Locked';
     }
-    try { localStorage.setItem('pathlockSkin', currentSkinIndex); } catch (e) {}
+
+    // Soundtrack Option
+    let soundtrackBtn = document.getElementById('soundtrackSelectBtn');
+    soundtrackBtn.innerText = soundtracks[currentSoundtrackIndex];
 }
+
+document.getElementById('prevSkinBtn').addEventListener('click', () => {
+    currentSkinIndex = (currentSkinIndex - 1 + skins.length) % skins.length;
+    updateStoreUI();
+});
+
+document.getElementById('nextSkinBtn').addEventListener('click', () => {
+    currentSkinIndex = (currentSkinIndex + 1) % skins.length;
+    updateStoreUI();
+});
 
 document.getElementById('buySkinBtn').addEventListener('click', () => {
     let skin = skins[currentSkinIndex];
     if (coins >= skin.price && !unlockedSkins.includes(currentSkinIndex)) {
         coins -= skin.price;
         unlockedSkins.push(currentSkinIndex);
-        try {
+        try { 
             localStorage.setItem('pathlockCoins', coins);
             localStorage.setItem('pathlockUnlockedSkins', JSON.stringify(unlockedSkins));
-        } catch(e) {}
-        updateSkinUI();
-        playMilestone();
-    }
-});
-
-document.getElementById('prevSkinBtn').addEventListener('click', () => {
-    currentSkinIndex = (currentSkinIndex - 1 + skins.length) % skins.length;
-    updateSkinUI();
 });
 
 document.getElementById('nextSkinBtn').addEventListener('click', () => {
@@ -763,7 +842,7 @@ devUnlockToggleBtn.addEventListener('click', () => {
     devUnlockAll = !devUnlockAll;
     devUnlockToggleBtn.innerText = devUnlockAll ? "ON" : "OFF";
     devUnlockToggleBtn.style.color = devUnlockAll ? "#f0f" : "#aaa";
-    updateSkinUI();
+    updateStoreUI();
 });
 
 document.getElementById('devSpeedSlider').addEventListener('input', (e) => {
@@ -787,62 +866,95 @@ function initAudio() {
 }
 
 function startBGM() {
-    if (bgmInterval || !audioCtx) return;
+    if (!audioCtx) return;
+    if (bgmInterval) {
+        clearInterval(bgmInterval);
+        bgmInterval = null;
+    }
+    if (bgmGain) {
+        bgmGain.disconnect();
+    }
     
     bgmGain = audioCtx.createGain();
     bgmGain.gain.value = isMuted ? 0 : masterVolume * 0.4;
     bgmGain.connect(audioCtx.destination);
     
-    const chords = [
-        [261.63, 329.63, 392.00, 493.88], // Cmaj7
-        [220.00, 261.63, 329.63, 392.00], // Am7
-        [174.61, 220.00, 261.63, 329.63], // Fmaj7
-        [196.00, 246.94, 293.66, 349.23]  // G7
-    ];
-    let tempo = 1.5;
+    let chords, tempo, waveType, beatPattern;
+    
+    if (currentSoundtrackIndex === 0) { // Lo-Fi Chill
+        chords = [ [261.63, 329.63, 392.00, 493.88], [220.00, 261.63, 329.63, 392.00], [174.61, 220.00, 261.63, 329.63], [196.00, 246.94, 293.66, 349.23] ];
+        tempo = 1.5;
+        waveType = 'triangle';
+        beatPattern = 'lofi';
+    } else if (currentSoundtrackIndex === 1) { // Arcade Fast
+        chords = [ [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88] ];
+        tempo = 0.5;
+        waveType = 'square';
+        beatPattern = 'arcade';
+    } else { // Ambient Dark
+        chords = [ [130.81, 196, 261.63], [146.83, 220, 293.66] ];
+        tempo = 3.0;
+        waveType = 'sine';
+        beatPattern = 'ambient';
+    }
     
     function playBeat() {
         if (audioCtx.state !== 'running') return;
         let t = audioCtx.currentTime + 0.05;
-        let chord = chords[currentChordIdx % 4];
+        let chord = chords[currentChordIdx % chords.length];
         
-        chord.forEach(freq => {
+        chord.forEach((freq, idx) => {
             let osc = audioCtx.createOscillator();
-            osc.type = 'triangle';
-            osc.frequency.value = freq;
+            osc.type = waveType;
+            let arpOffset = beatPattern === 'arcade' ? idx * 0.125 : 0;
+            osc.frequency.setValueAtTime(freq, t + arpOffset);
             let env = audioCtx.createGain();
-            env.gain.setValueAtTime(0, t);
-            env.gain.linearRampToValueAtTime(0.1, t + 0.2);
-            env.gain.exponentialRampToValueAtTime(0.01, t + tempo - 0.1);
+            env.gain.setValueAtTime(0, t + arpOffset);
+            
+            if (beatPattern === 'ambient') {
+                env.gain.linearRampToValueAtTime(0.1, t + 1.0);
+                env.gain.linearRampToValueAtTime(0, t + tempo);
+            } else if (beatPattern === 'arcade') {
+                env.gain.linearRampToValueAtTime(0.05, t + arpOffset + 0.05);
+                env.gain.exponentialRampToValueAtTime(0.001, t + arpOffset + 0.25);
+            } else {
+                env.gain.linearRampToValueAtTime(0.1, t + 0.2);
+                env.gain.exponentialRampToValueAtTime(0.01, t + tempo - 0.1);
+            }
+            
             osc.connect(env);
             env.connect(bgmGain);
-            osc.start(t);
-            osc.stop(t + tempo);
+            osc.start(t + arpOffset);
+            osc.stop(t + (beatPattern === 'ambient' ? tempo : (beatPattern === 'arcade' ? 0.3 : tempo)));
         });
         
-        let kickOsc = audioCtx.createOscillator();
-        let kickGain = audioCtx.createGain();
-        kickOsc.frequency.setValueAtTime(150, t);
-        kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
-        kickGain.gain.setValueAtTime(0.4, t);
-        kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-        kickOsc.connect(kickGain);
-        kickGain.connect(bgmGain);
-        kickOsc.start(t);
-        kickOsc.stop(t + 0.1);
+        if (beatPattern === 'lofi' || beatPattern === 'arcade') {
+            let kickOsc = audioCtx.createOscillator();
+            let kickGain = audioCtx.createGain();
+            kickOsc.frequency.setValueAtTime(beatPattern === 'arcade' ? 200 : 150, t);
+            kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
+            kickGain.gain.setValueAtTime(0.4, t);
+            kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            kickOsc.connect(kickGain);
+            kickGain.connect(bgmGain);
+            kickOsc.start(t);
+            kickOsc.stop(t + 0.1);
+        }
         
-        let snareT = t + tempo/2;
-        let snareOsc = audioCtx.createOscillator();
-        let snareGain = audioCtx.createGain();
-        snareOsc.type = 'square';
-        snareOsc.frequency.setValueAtTime(800, snareT);
-        snareOsc.frequency.exponentialRampToValueAtTime(100, snareT + 0.1);
-        snareGain.gain.setValueAtTime(0.1, snareT);
-        snareGain.gain.exponentialRampToValueAtTime(0.01, snareT + 0.1);
-        snareOsc.connect(snareGain);
-        snareGain.connect(bgmGain);
-        snareOsc.start(snareT);
-        snareOsc.stop(snareT + 0.1);
+        if (beatPattern === 'lofi') {
+            let snareT = t + tempo/2;
+            let snareOsc = audioCtx.createOscillator();
+            let snareGain = audioCtx.createGain();
+            snareOsc.type = 'square';
+            snareOsc.frequency.setValueAtTime(800, snareT);
+            snareOsc.frequency.exponentialRampToValueAtTime(100, snareT + 0.1);
+            snareGain.gain.setValueAtTime(0.1, snareT);
+            snareGain.gain.exponentialRampToValueAtTime(0.01, snareT + 0.1);
+            snareOsc.connect(snareGain);
+            snareGain.connect(bgmGain);
+            snareOsc.start(snareT);
+            snareOsc.stop(snareT + 0.1);
+        }
         
         currentChordIdx++;
     }
@@ -925,6 +1037,7 @@ document.getElementById('quitBtn').addEventListener('click', () => {
     scoreDisplay.style.display = 'none';
     highScoreDisplay.style.display = 'none';
     document.getElementById('countdownOverlay').style.display = 'none';
+    document.getElementById('reloadTutorialBtn').style.display = 'none';
 });
 
 function resumeGame() {
@@ -1054,12 +1167,9 @@ function prepareStartGame() {
             }, 500);
         }
     }, 1000);
+    document.getElementById('coinValue').innerText = coins;
+    document.getElementById('reloadTutorialBtn').style.display = 'none';
 }
-
-
-
-let isTutorial = false;
-let tutorialStep = 0;
 
 function startTutorial() {
     grid.clear();
@@ -1093,6 +1203,7 @@ function startTutorial() {
     scoreDisplay.style.display = 'none';
     highScoreDisplay.style.display = 'none';
     document.getElementById('coinDisplay').style.display = 'block';
+    document.getElementById('reloadTutorialBtn').style.display = 'block';
     
     let overlay = document.getElementById('countdownOverlay');
     overlay.style.display = 'block';
@@ -1103,6 +1214,11 @@ function startTutorial() {
         if (gameState === 'PLAYING' && isTutorial && tutorialStep === 0) overlay.style.display = 'none';
     }, 3000);
 }
+
+document.getElementById('reloadTutorialBtn').addEventListener('click', () => {
+    document.getElementById('countdownOverlay').style.display = 'none';
+    startTutorial();
+});
 
 function startGame() {
     isTutorial = false;
@@ -1330,6 +1446,7 @@ function update(dt) {
                 document.getElementById('scoreDisplay').style.display = 'none';
                 document.getElementById('highScoreDisplay').style.display = 'none';
                 document.getElementById('coinDisplay').style.display = 'none';
+                document.getElementById('reloadTutorialBtn').style.display = 'none';
                 
                 let overlay = document.getElementById('countdownOverlay');
                 overlay.style.display = 'block';
@@ -1392,15 +1509,15 @@ function drawTile(ctx, tile, x, y, isCurrent) {
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, 150, 150);
 
-    let levelTheme = levels[currentLevelIndex];
+    let levelTheme = themes[currentThemeIndex];
 
-    ctx.strokeStyle = isCurrent ? levelTheme.primaryColor : levelTheme.secondaryColor;
+    ctx.strokeStyle = isCurrent ? levelTheme.pathColor : levelTheme.pathShadow;
     ctx.lineWidth = 14;
     ctx.lineCap = "round";
     
     if (isCurrent) {
         ctx.shadowBlur = 20;
-        ctx.shadowColor = levelTheme.primaryColor;
+        ctx.shadowColor = levelTheme.pathColor;
     }
 
     ctx.beginPath();
@@ -1421,22 +1538,11 @@ function drawTile(ctx, tile, x, y, isCurrent) {
     }
     ctx.stroke();
 
-    ctx.fillStyle = isCurrent ? levelTheme.primaryColor : levelTheme.secondaryColor;
+    ctx.fillStyle = isCurrent ? levelTheme.pathColor : levelTheme.pathShadow;
     ctx.shadowBlur = 0;
     ctx.beginPath();
     
-    if (levelTheme.shape === 'circle') {
-        ctx.arc(75, 75, 6, 0, Math.PI*2);
-    } else if (levelTheme.shape === 'diamond') {
-        ctx.moveTo(75, 65);
-        ctx.lineTo(85, 75);
-        ctx.lineTo(75, 85);
-        ctx.lineTo(65, 75);
-    } else if (levelTheme.shape === 'triangle') {
-        ctx.moveTo(75, 66);
-        ctx.lineTo(84, 80);
-        ctx.lineTo(66, 80);
-    }
+    ctx.arc(75, 75, 6, 0, Math.PI*2);
     ctx.fill();
     
     if (tile.hasCoin) {
@@ -1456,7 +1562,7 @@ function drawTile(ctx, tile, x, y, isCurrent) {
 }
 
 function draw() {
-    ctx.fillStyle = "#0a0a10";
+    ctx.fillStyle = themes[currentThemeIndex].bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     if (gameState === 'LOADING') return;
