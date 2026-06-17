@@ -1430,44 +1430,18 @@ function startCredits() {
     
     runner = { col: 0, row: 1, entrySide: 3, distance: 0, fallX: 0, fallY: 0, vx: 0, vy: 0 };
     
-    grid.set(0, [null, { sides: [3, 1] }, null]); 
-    grid.set(1, [null, { sides: [3, 2] }, { sides: [0, 1] }]); 
-    grid.set(2, [null, null, { sides: [3, 1] }]);
-    grid.set(3, [null, { sides: [2, 1] }, { sides: [3, 0] }]); 
-    grid.set(4, [null, { sides: [3, 1] }, null]);
-    grid.set(5, [null, { sides: [3, 1] }, null]);
-    grid.set(6, [null, { sides: [3, 1] }, null]);
-    grid.set(7, [null, { sides: [3, 2] }, { sides: [0, 1] }]);
-    grid.set(8, [null, null, { sides: [3, 1] }]);
-    grid.set(9, [null, null, { sides: [3, 1] }]);
-    grid.set(10, [null, null, { sides: [3, 1] }]);
-    grid.set(11, [null, { sides: [2, 1] }, { sides: [3, 0] }]);
-    grid.set(12, [null, { sides: [3, 1] }, null]);
-    grid.set(13, [null, { sides: [3, 1] }, null]);
-    grid.set(14, [null, { sides: [3, 1] }, null]);
-    
-    highestColGenerated = 14;
-    for (let c = 15; c <= 500; c++) {
-        generateColumn(c, false);
+    for (let c = 0; c <= 25; c++) {
+        grid.set(c, [null, { sides: [3, 1] }, null]);
     }
-    highestColGenerated = 500;
-    
+    highestColGenerated = 25;
     cameraX = -75;
     
-    function getValidRow(colStr) {
-        let colArr = grid.get(Math.floor(colStr));
-        if (!colArr) return 1;
-        for (let r=0; r<3; r++) { if(colArr[r]) return r; }
-        return 1;
-    }
-    
     creditsTextNodes = [
-        { col: 1.5, row: getValidRow(1.5), text: "Created by Vienna Studios" },
-        { col: 5.5, row: getValidRow(5.5), text: "Game Testers: Thummo & T1" },
-        { col: 8.5, row: getValidRow(8.5) + 0.5, text: "Music: SoundHelix" },
-        { col: 13, row: getValidRow(13), text: "Graphics: Canvas 2D" },
-        { col: 20, row: getValidRow(20), text: "The password is at the end of the track after 500 blocks!" },
-        { col: 498, row: getValidRow(498), text: "Password: ViennaCore" }
+        { col: 3.5, row: 0, text: "Created by Vienna Studios" },
+        { col: 9.5, row: 2, text: "Game Testers: Thummo & T1" },
+        { col: 15.5, row: 0, text: "Music: SoundHelix" },
+        { col: 21.5, row: 2, text: "Graphics: Canvas 2D" },
+        { col: 24.5, row: 0, text: "Password: ViennaCore" }
     ];
     
     gameState = 'PLAYING';
@@ -1957,21 +1931,15 @@ function draw() {
     }
     
     if (isCredits) {
+        ctx.fillStyle = '#0ff';
         ctx.font = 'bold 22px "Orbitron", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#0ff';
         creditsTextNodes.forEach(node => {
             let cx = node.col * 150 + 75;
             let cy = node.row * 150 + 75;
-            
-            let textWidth = ctx.measureText(node.text).width;
-            ctx.fillStyle = 'rgba(10, 10, 16, 0.8)';
-            ctx.shadowBlur = 0;
-            ctx.fillRect(cx - textWidth/2 - 10, cy - 15, textWidth + 20, 30);
-            
-            ctx.fillStyle = '#0ff';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#0ff';
             ctx.fillText(node.text, cx, cy);
         });
         ctx.shadowBlur = 0;
