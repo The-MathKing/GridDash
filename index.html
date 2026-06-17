@@ -325,12 +325,12 @@
     <div id="coinDisplay" class="hud" style="display: none; top: 60px; left: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">Coins: <span id="coinValue">0</span></div>
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
     <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
-    <button id="reloadTutorialBtn" style="display: none; position: absolute; top: 20px; right: 80px; z-index: 100; font-size: 16px; padding: 8px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">Reload Tutorial</button>
+    <button id="reloadTutorialBtn" style="display: none; position: absolute; top: 20px; right: 160px; z-index: 100; font-size: 16px; padding: 8px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">Reload Tutorial</button>
     <button id="exitCreditsBtn" style="display: none; position: absolute; top: 20px; right: 20px; z-index: 100; font-size: 16px; padding: 8px 15px; background: rgba(0,0,0,0.8); border: 1px solid #f00; color: #f00; cursor: pointer; border-radius: 5px;">Exit Credits</button>
     <div id="uiLayer">
         <!-- Main Menu Panel -->
         <div id="mainMenuPanel" class="panel">
-            <h1>Pathlock</h1>
+            <h1 style="font-size: 80px; color: #0ff; text-shadow: 0 0 30px #0ff; margin-bottom: 20px;">Pathlock</h1>
             
             <div id="lastScoreDisplay" class="stats" style="display: block; font-size: 20px;">
                 <span id="lastScoreValue">Play to receive your score!</span><span id="menuHighScoreContainer" style="display: none;"> | High Score: <span id="menuHighScoreValue">0</span></span>
@@ -395,7 +395,7 @@
                 <button id="box10Btn" title="Chances: 30% Common, 60% Uncommon, 10% Rare" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 5px; flex: 1;">Uncommon<br><span style="color:#ffd700;">10 Coins</span></button>
                 <button id="box25Btn" title="Chances: 30% Uncommon, 70% Rare" style="padding: 8px; font-size: 14px; cursor: pointer; border: 2px solid #f0f; background: rgba(0,0,0,0.5); color: #f0f; border-radius: 5px; flex: 1;">Rare<br><span style="color:#ffd700;">25 Coins</span></button>
             </div>
-            <div id="boxResultText" style="height: 20px; margin-top: 15px; margin-bottom: 25px; font-size: 16px; color: #fff;"></div>
+            <div id="boxResultText" style="height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; margin-top: 15px; margin-bottom: 25px; font-size: 16px; color: #fff;"></div>
             
             <h3 style="margin: 0 0 10px 0; color: #aaa;">Your Skins</h3>
             <div id="inventoryGrid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 400px; margin-bottom: 15px;">
@@ -411,19 +411,23 @@
             
             <div style="margin-bottom: 20px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #0ff;">
                 <h3 style="margin-top: 0; color: #0ff;">Audio</h3>
-                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
-                    Mute Sounds
-                    <button id="muteToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
-                </div>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 15px;">
+                    SFX Volume <span id="sfxVolumeValueText" style="margin-left: 10px; font-size: 14px; width: 30px; text-align: right;">50</span>
+                    <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 120px; margin: 0;">
+                </label>
                 <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff;">
-                    Master Volume <span id="volumeValueText" style="margin-left: 10px; font-size: 14px; width: 30px; text-align: right;">50</span>
-                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 120px; margin: 0;">
+                    Music Volume <span id="bgmVolumeValueText" style="margin-left: 10px; font-size: 14px; width: 30px; text-align: right;">50</span>
+                    <input type="range" id="bgmVolumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 120px; margin: 0;">
                 </label>
             </div>
             
             <div style="margin-bottom: 30px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #f0f;">
                 <h3 style="margin-top: 0; color: #f0f; display: flex; justify-content: space-between; align-items: center;">Developer Settings <button id="devLoginBtn" style="padding: 2px 8px; font-size: 12px; background: #333; color: #fff; border: 1px solid #aaa; cursor: pointer; border-radius: 3px;">Login</button></h3>
                 <div id="devSettingsContent" style="display: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                        Wipe Save Data
+                        <button id="devWipeSaveBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #f00; border: 1px solid #f00; cursor: pointer;">WIPE</button>
+                    </div>
                     <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
                         Unlock All Skins & Maps
                         <button id="devUnlockToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
@@ -497,14 +501,17 @@ let speed = 100;
 let score = 0;
 let totalDistanceThisRun = 0;
 let highScore = 0;
+let totalLifetimeDistance = 0;
 try { highScore = parseInt(localStorage.getItem('pathlockHighScoreV2')) || 0; } catch (e) {}
+try { totalLifetimeDistance = parseInt(localStorage.getItem('pathlockLifetimeDistance')) || 0; } catch (e) {}
 
 let cameraX = -75;
 let lastTime = 0;
 let audioCtx = null;
 let masterCompressor = null;
-let masterVolume = 0.5;
-let isMuted = false;
+let sfxVolume = 0.5;
+let bgmVolume = 0.5;
+let currentBgmAudio = null;
 let devUnlockAll = false;
 let customSpeedOverride = null;
 let bgmOscillators = [];
@@ -565,7 +572,7 @@ const themes = [
 
 let currentThemeIndex = 0;
 try { currentThemeIndex = parseInt(localStorage.getItem('pathlockTheme')) || 0; } catch (e) {}
-if (highScore < themes[currentThemeIndex].unlockScore && !devUnlockAll) currentThemeIndex = 0;
+if (totalLifetimeDistance < themes[currentThemeIndex].unlockScore && !devUnlockAll) currentThemeIndex = 0;
 
 // Soundtrack Setup
 const soundtracks = ['Lo-Fi Chill', 'Arcade Fast', 'Ambient Dark'];
@@ -583,14 +590,14 @@ const dy = [-1, 0, 1, 0];
 
 // --- UI Logic ---
 function showPanel(panelId) {
-    document.getElementById('mainMenuPanel').classList.remove('active');
-    document.getElementById('creditsPanel').classList.remove('active');
-    document.getElementById('optionsPanel').classList.remove('active');
-    document.getElementById('pausePanel').classList.remove('active');
-    document.getElementById('skinsAndMapsPanel').classList.remove('active');
+    ['mainMenuPanel', 'creditsPanel', 'optionsPanel', 'pausePanel', 'skinsAndMapsPanel'].forEach(id => {
+        let el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
     
     if (panelId) {
-        document.getElementById(panelId).classList.add('active');
+        let el = document.getElementById(panelId);
+        if (el) el.classList.add('active');
         uiLayer.classList.remove('hidden');
     } else {
         uiLayer.classList.add('hidden');
@@ -731,7 +738,7 @@ function updateStoreUI() {
     themeBox.style.border = `2px solid ${theme.pathColor}`;
     themeBox.style.boxShadow = `inset 0 0 10px ${theme.pathShadow}, 0 0 10px ${theme.pathShadow}`;
     
-    let isThemeUnlocked = devUnlockAll || highScore >= theme.unlockScore;
+    let isThemeUnlocked = devUnlockAll || totalLifetimeDistance >= theme.unlockScore;
     let buyThemeBtn = document.getElementById('buyThemeBtn');
     let themeStatusDiv = document.getElementById('themeStatus');
     
@@ -741,10 +748,15 @@ function updateStoreUI() {
         themeStatusDiv.innerText = 'Unlocked';
         themeStatusDiv.style.color = '#aaa';
         themeStatusDiv.style.display = 'block';
+        themeStatusDiv.style.fontSize = '';
+        themeStatusDiv.style.whiteSpace = 'normal';
     } else {
-        themeStatusDiv.innerText = 'Not Owned';
+        let remaining = theme.unlockScore - Math.floor(totalLifetimeDistance);
+        themeStatusDiv.innerText = `Unlocks in ${remaining} distance traveled`;
         themeStatusDiv.style.color = '#f00';
         themeStatusDiv.style.display = 'block';
+        themeStatusDiv.style.fontSize = '12px';
+        themeStatusDiv.style.whiteSpace = 'nowrap';
     }
     try { localStorage.setItem('pathlockTheme', currentThemeIndex); } catch (e) {}
 
@@ -935,6 +947,24 @@ function openBox(cost, commonChance, uncommonChance, rareChance) {
 document.getElementById('box5Btn').addEventListener('click', () => openBox(5, 0.90, 0.10, 0.00));
 document.getElementById('box10Btn').addEventListener('click', () => openBox(10, 0.30, 0.60, 0.10));
 document.getElementById('box25Btn').addEventListener('click', () => openBox(25, 0.00, 0.30, 0.70));
+
+function addBoxHover(id, text) {
+    let btn = document.getElementById(id);
+    btn.addEventListener('mouseenter', () => {
+        let resText = document.getElementById('boxResultText');
+        if (!resText.innerHTML || resText.innerHTML.startsWith('Chances') || resText.innerHTML.startsWith('Not enough') || resText.innerHTML.startsWith('Duplicate') || resText.innerHTML.startsWith('Unlocked')) {
+            resText.innerHTML = text;
+            resText.style.color = '#fff';
+        }
+    });
+    btn.addEventListener('mouseleave', () => {
+        let resText = document.getElementById('boxResultText');
+        if (resText.innerHTML === text) resText.innerHTML = '';
+    });
+}
+addBoxHover('box5Btn', 'Chances:<br>90% Common<br>10% Uncommon');
+addBoxHover('box10Btn', 'Chances:<br>30% Common, 60% Uncommon<br>10% Rare');
+addBoxHover('box25Btn', 'Chances:<br>30% Uncommon<br>70% Rare');
 function spawnUIConfetti() {
     let panel = document.getElementById('skinsAndMapsPanel');
     let centerX = panel.offsetWidth / 2;
@@ -1011,19 +1041,17 @@ document.getElementById('closeOptionsBtn').addEventListener('click', () => {
     showPanel('mainMenuPanel');
 });
 
-let muteToggleBtn = document.getElementById('muteToggleBtn');
-muteToggleBtn.addEventListener('click', () => {
-    isMuted = !isMuted;
-    muteToggleBtn.innerText = isMuted ? "ON" : "OFF";
-    muteToggleBtn.style.color = isMuted ? "#0ff" : "#aaa";
-    if (bgmGain) bgmGain.gain.setTargetAtTime(isMuted ? 0 : masterVolume * 0.4, audioCtx.currentTime, 0.1);
+let sfxVolumeValueText = document.getElementById('sfxVolumeValueText');
+document.getElementById('sfxVolumeSlider').addEventListener('input', (e) => {
+    sfxVolume = parseFloat(e.target.value);
+    sfxVolumeValueText.innerText = Math.round(sfxVolume * 100);
 });
 
-let volumeValueText = document.getElementById('volumeValueText');
-document.getElementById('volumeSlider').addEventListener('input', (e) => {
-    masterVolume = parseFloat(e.target.value);
-    volumeValueText.innerText = Math.round(masterVolume * 100);
-    if (!isMuted && bgmGain) bgmGain.gain.setTargetAtTime(masterVolume * 0.4, audioCtx.currentTime, 0.1);
+let bgmVolumeValueText = document.getElementById('bgmVolumeValueText');
+document.getElementById('bgmVolumeSlider').addEventListener('input', (e) => {
+    bgmVolume = parseFloat(e.target.value);
+    bgmVolumeValueText.innerText = Math.round(bgmVolume * 100);
+    if (bgmGain) bgmGain.gain.setTargetAtTime(bgmVolume * 0.4, audioCtx.currentTime, 0.1);
 });
 
 document.getElementById('devLoginBtn').addEventListener('click', () => {
@@ -1042,6 +1070,20 @@ document.getElementById('devAddCoinsBtn').addEventListener('click', () => {
     document.getElementById('menuCoinValue').innerText = coins;
     if (gameState === 'SKINSMAPS') {
         renderInventory();
+    }
+});
+
+document.getElementById('devWipeSaveBtn').addEventListener('click', () => {
+    if (confirm("Are you sure you want to wipe all save data? This cannot be undone.")) {
+        localStorage.clear();
+        coins = 0;
+        highScore = 0;
+        totalLifetimeDistance = 0;
+        unlockedSkins = [0];
+        currentSkinIndex = 0;
+        currentThemeIndex = 0;
+        document.getElementById('menuCoinValue').innerText = coins;
+        updateStoreUI();
     }
 });
 
@@ -1066,6 +1108,7 @@ document.getElementById('devSpeedSlider').addEventListener('input', (e) => {
 
 let bgmInterval = null;
 let currentChordIdx = 0;
+let bgmStarted = false;
 
 function initAudio() {
     if (!audioCtx) {
@@ -1079,7 +1122,10 @@ function initAudio() {
         masterCompressor.connect(audioCtx.destination);
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    startBGM();
+    if (!bgmStarted) {
+        startBGM();
+        bgmStarted = true;
+    }
 }
 
 function startBGM() {
@@ -1093,7 +1139,7 @@ function startBGM() {
     }
     
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.value = isMuted ? 0 : masterVolume * 0.4;
+    bgmGain.gain.value = bgmVolume * 0.4;
     bgmGain.connect(masterCompressor);
     
     let chords, tempo, waveType, beatPattern;
@@ -1216,8 +1262,8 @@ function startBGM() {
 }
 
 function playTone(freq, type, duration, vol=0.1) {
-    if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
-    let finalVol = Math.max(0.01, vol * masterVolume);
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    let finalVol = Math.max(0.01, vol * sfxVolume);
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
@@ -1231,8 +1277,8 @@ function playTone(freq, type, duration, vol=0.1) {
 }
 
 function playSweep(startFreq, endFreq, type, duration, vol=0.1) {
-    if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
-    let finalVol = Math.max(0.01, vol * masterVolume);
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    let finalVol = Math.max(0.01, vol * sfxVolume);
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
@@ -1434,6 +1480,7 @@ function startTutorial() {
     baseSpeed = 100;
     speed = 100;
     isTutorial = true;
+    isCredits = false;
     tutorialStep = 0;
     
     runner = { col: 0, row: 1, entrySide: 3, distance: 0, fallX: 0, fallY: 0, vx: 0, vy: 0 };
@@ -1477,8 +1524,8 @@ function startCredits() {
     totalDistanceThisRun = 0;
     lastTime = 0;
     
-    baseSpeed = 100;
-    speed = 100;
+    baseSpeed = 200;
+    speed = 200;
     isTutorial = false;
     isCredits = true;
     
@@ -1501,13 +1548,24 @@ function startCredits() {
     grid.set(14, [null, { sides: [3, 1] }, null]);
     
     highestColGenerated = 14;
+    ensureColumns(500); // Randomly generates the rest of the 500-block path!
+    
     cameraX = -75;
     
+    function getValidRow(colStr) {
+        let colArr = grid.get(Math.floor(colStr));
+        if (!colArr) return 1;
+        for (let r=0; r<3; r++) { if(colArr[r]) return r; }
+        return 1;
+    }
+    
     creditsTextNodes = [
-        { col: 1.5, row: 0, text: "Music & Sound: Web Audio API" },
-        { col: 5.5, row: 0, text: "Graphics: Canvas 2D" },
-        { col: 9.5, row: 1.5, text: "Created by Vienna Studios" },
-        { col: 13, row: 0, text: "Game Testers: Thummo, T1" }
+        { col: 1.5, row: getValidRow(1.5), text: "Created by Vienna Studios" },
+        { col: 5.5, row: getValidRow(5.5), text: "Game Testers: Thummo & T1" },
+        { col: 8.5, row: getValidRow(8.5) + 0.5, text: "Music: Web Audio API" },
+        { col: 13, row: getValidRow(13), text: "Graphics: Canvas 2D" },
+        { col: 20, row: getValidRow(20), text: "The password is at the end of the track after 500 blocks!" },
+        { col: 498, row: getValidRow(498), text: "Password: ViennaCore" }
     ];
     
     gameState = 'PLAYING';
@@ -1576,13 +1634,23 @@ function crashRunner(exitSide) {
     spawnParticles(pos.x, pos.y, 30, skins[currentSkinIndex].color, 300, 1.0, true);
     
     if (isCredits) {
-        setTimeout(startCredits, 1500);
+        setTimeout(() => {
+            isCredits = false;
+            gameState = 'MENU';
+            showPanel('mainMenuPanel');
+            document.getElementById('countdownOverlay').style.display = 'none';
+            document.getElementById('exitCreditsBtn').style.display = 'none';
+        }, 1500);
         return;
     }
     
-    if (!isTutorial && !isCredits && score > highScore) {
-        highScore = score;
-        try { localStorage.setItem('pathlockHighScoreV2', highScore); } catch (e) {}
+    if (!isTutorial && !isCredits) {
+        totalLifetimeDistance += score;
+        try { localStorage.setItem('pathlockLifetimeDistance', totalLifetimeDistance); } catch (e) {}
+        if (score > highScore) {
+            highScore = score;
+            try { localStorage.setItem('pathlockHighScoreV2', highScore); } catch (e) {}
+        }
     }
     
     setTimeout(() => {
@@ -1672,7 +1740,7 @@ function update(dt) {
     if (gameState !== 'PLAYING') return;
 
     let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
-    let targetSpeed = baseSpeed * Math.pow(1.02, Math.floor(blocksTraveled / 10));
+    let targetSpeed = isCredits ? baseSpeed : baseSpeed * Math.pow(1.30, Math.floor(score / 100));
     
     if (isTutorial && tutorialStep === 0 && runner.col === 3) {
         let nextTileObj = grid.get(4) ? grid.get(4)[1] : null;
@@ -1770,7 +1838,7 @@ function update(dt) {
                 return;
             }
             
-            if ((isTutorial || isCredits) && nextCol > highestColGenerated) {
+            if (isTutorial && nextCol > highestColGenerated) {
                 gameState = 'MENU';
                 showPanel('mainMenuPanel');
                 document.getElementById('scoreDisplay').style.display = 'none';
@@ -1798,7 +1866,8 @@ function update(dt) {
                 ensureColumns(nextCol + 6);
             }
             
-            let nextTileObj = grid.get(nextCol)[nextRow];
+            let nextColArr = grid.get(nextCol);
+            let nextTileObj = nextColArr ? nextColArr[nextRow] : null;
             
             if (!nextTileObj || !nextTileObj.sides.includes(nextEntrySide)) {
                 crashRunner(exitSide);
@@ -1984,16 +2053,14 @@ function draw() {
         drawSkinPattern(ctx, skin, runner.col * 150 + 75, runner.row * 150 + 75, 1, 0);
         ctx.restore();
     }
-        ctx.restore();
-    }
     
     if (isCredits) {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#0ff';
         ctx.font = 'bold 22px "Orbitron", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#0ff';
         creditsTextNodes.forEach(node => {
             ctx.fillText(node.text, node.col * 150 + 75, node.row * 150 + 75);
         });
