@@ -325,7 +325,7 @@
             <h1>Pathlock</h1>
             
             <div id="lastScoreDisplay" class="stats" style="display: none; font-size: 20px;">
-                Last Score: <span id="lastScoreValue">0</span>
+                Score: <span id="lastScoreValue">0</span><span id="menuHighScoreContainer"> | High Score: <span id="menuHighScoreValue">0</span></span>
             </div>
             
             <div id="menuCoinDisplay" class="stats" style="font-size: 24px; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 10px #ffd700;">
@@ -364,11 +364,7 @@
                 </div>
             </div>
             
-            <div class="difficulty-selector">
-                <label>Difficulty</label>
-                <input type="range" id="difficultySlider" min="0" max="3" step="1" value="1">
-                <div id="difficultyText">Normal: 1.0x</div>
-            </div>
+
             
             <button id="mainButton">Start Game</button>
             <div class="btn-group">
@@ -556,32 +552,7 @@ const SIDE_POINTS = [
 const dx = [0, 1, 0, -1];
 const dy = [-1, 0, 1, 0];
 
-// --- Difficulty Slider Logic ---
-const difficultySlider = document.getElementById('difficultySlider');
-const difficultyText = document.getElementById('difficultyText');
 
-const diffMap = [
-    { text: 'Easy: 0.5x', speed: 100 },
-    { text: 'Normal: 1.0x', speed: 150 },
-    { text: 'Hard: 2.0x', speed: 200 },
-    { text: 'Nightmare: 3.0x', speed: 300 }
-];
-
-function updateDifficultyText() {
-    if (customSpeedOverride) {
-        difficultyText.innerText = "Custom: " + customSpeedOverride;
-    } else {
-        difficultyText.innerText = diffMap[difficultySlider.value].text;
-    }
-}
-
-difficultySlider.addEventListener('input', (e) => {
-    customSpeedOverride = null;
-    updateDifficultyText();
-});
-
-// Set default starting point for UI text (Value = 1 from HTML)
-updateDifficultyText();
 
 
 // --- UI Logic ---
@@ -868,7 +839,7 @@ document.getElementById('devSpeedSlider').addEventListener('input', (e) => {
     let spd = parseInt(e.target.value);
     document.getElementById('devSpeedText').innerText = spd;
     customSpeedOverride = spd;
-    updateDifficultyText();
+
     if (gameState === 'PLAYING') {
         baseSpeed = spd;
         speed = spd;
@@ -1256,7 +1227,7 @@ function startGame() {
     totalDistanceThisRun = 0;
     lastTime = 0;
     
-    let baseSpd = diffMap[difficultySlider.value].speed;
+    let baseSpd = 150; // Normal difficulty speed
     baseSpeed = customSpeedOverride ? customSpeedOverride : baseSpd;
     speed = baseSpeed;
     
@@ -1312,6 +1283,8 @@ function crashRunner(exitSide) {
         
         document.getElementById('lastScoreDisplay').style.display = 'block';
         document.getElementById('lastScoreValue').innerText = Math.floor(score);
+        document.getElementById('menuHighScoreValue').innerText = Math.floor(highScore);
+        document.getElementById('menuHighScoreContainer').style.display = 'inline';
         
         updateStoreUI();
     }, 1500);
@@ -1386,7 +1359,7 @@ function update(dt) {
     if (gameState !== 'PLAYING') return;
 
     let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
-    let targetSpeed = baseSpeed + (baseSpeed * 0.1) * Math.floor(blocksTraveled / 100);
+    let targetSpeed = baseSpeed * Math.pow(1.01, Math.floor(blocksTraveled / 10));
     
     if (isTutorial && tutorialStep === 0 && runner.col === 3) {
         let nextTileObj = grid.get(4) ? grid.get(4)[1] : null;
@@ -1502,11 +1475,14 @@ function update(dt) {
                     overlay.style.display = 'none';
                     document.getElementById('lastScoreDisplay').style.display = 'block';
                     document.getElementById('lastScoreValue').innerText = 'Tutorial Complete!';
+                    document.getElementById('menuHighScoreContainer').style.display = 'none';
                 }, 2000);
                 return;
             }
             
-            ensureColumns(nextCol + 6);
+            if (!isTutorial) {
+                ensureColumns(nextCol + 6);
+            }
             
             let nextTileObj = grid.get(nextCol)[nextRow];
             
