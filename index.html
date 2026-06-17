@@ -531,15 +531,16 @@ const diffMap = [
 
 function updateDifficultyText() {
     if (customSpeedOverride) {
-        difficultySlider.disabled = true;
         difficultyText.innerText = "Custom: " + customSpeedOverride;
     } else {
-        difficultySlider.disabled = false;
         difficultyText.innerText = diffMap[difficultySlider.value].text;
     }
 }
 
-difficultySlider.addEventListener('input', updateDifficultyText);
+difficultySlider.addEventListener('input', (e) => {
+    customSpeedOverride = null;
+    updateDifficultyText();
+});
 
 // Set default starting point for UI text (Value = 1 from HTML)
 updateDifficultyText();
@@ -1026,6 +1027,33 @@ function ensureColumns(maxCol) {
 function prepareStartGame() {
     initAudio();
     startGame();
+    
+    gameState = 'COUNTDOWN';
+    let count = 3;
+    let overlay = document.getElementById('countdownOverlay');
+    overlay.style.display = 'block';
+    overlay.style.fontSize = '120px';
+    overlay.innerText = count;
+    playTone(600, 'sine', 0.1, 0.1);
+    
+    let interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            overlay.innerText = count;
+            playTone(600, 'sine', 0.1, 0.1);
+        } else {
+            clearInterval(interval);
+            overlay.innerText = 'GO!';
+            playTone(1200, 'sine', 0.2, 0.1);
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                if (gameState === 'COUNTDOWN') {
+                    gameState = 'PLAYING';
+                    lastTime = 0; // reset dt spike
+                }
+            }, 500);
+        }
+    }, 1000);
 }
 
 
@@ -1050,8 +1078,12 @@ function startTutorial() {
     
     grid.set(0, [null, { sides: [3, 1] }, null]);
     grid.set(1, [null, { sides: [3, 1] }, null]);
-    grid.set(2, [null, { sides: [0, 2] }, null]); // The broken link
-    grid.set(3, [null, { sides: [3, 1], hasCoin: true }, null]);
+    grid.set(2, [
+        { sides: [0, 3], hasCoin: true }, // needs [1, 2]
+        { sides: [1, 2] },                // needs [0, 3]
+        null
+    ]);
+    grid.set(3, [{ sides: [3, 1] }, null, null]);
     highestColGenerated = 3;
     
     cameraX = -75;
@@ -1096,7 +1128,6 @@ function startGame() {
     let pos = getRunnerXY();
     cameraX = pos.x - 150;
     
-    gameState = 'PLAYING';
     showPanel(null); // Hide UI
     scoreDisplay.style.display = 'block';
     highScoreDisplay.style.display = 'block';
@@ -1595,10 +1626,23 @@ canvas.addEventListener('touchstart', handleInteraction, {passive: false});
 document.getElementById('mainButton').addEventListener('click', prepareStartGame);
 
 document.getElementById('fullscreenBtn').addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    let elem = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(e => console.log(e));
+        } else if (elem.webkitRequestFullscreen) { /* Safari */
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { /* IE11 */
+            elem.msRequestFullscreen();
+        }
     } else {
-        if (document.exitFullscreen) document.exitFullscreen();
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
     }
 });
 
