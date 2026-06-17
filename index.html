@@ -353,16 +353,45 @@
             <button id="mainButton">Start Game</button>
             <div class="btn-group">
                 <button id="tutorialBtn" class="secondary-btn">Tutorial</button>
+                <button id="optionsBtn" class="secondary-btn">Options</button>
                 <button id="creditsBtn" class="secondary-btn">Credits</button>
             </div>
         </div>
 
-        <!-- Tutorial Panel -->
-        <div id="tutorialPanel" class="panel">
-            <h1>How to Play</h1>
-            <div class="subtitle">Click upcoming tiles to rotate them.<br>Build a continuous path for the runner!</div>
-            <button id="tutorialGotItBtn" class="secondary-btn">Back</button>
+        <!-- Options Panel -->
+        <div id="optionsPanel" class="panel">
+            <h1>Options</h1>
+            
+            <div style="margin-bottom: 20px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #0ff;">
+                <h3 style="margin-top: 0; color: #0ff;">Audio</h3>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                    Mute Sounds
+                    <input type="checkbox" id="muteToggle" style="width: 20px; height: 20px;">
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff;">
+                    Master Volume
+                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" style="width: 150px; margin: 0;">
+                </label>
+            </div>
+            
+            <div style="margin-bottom: 30px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #f0f;">
+                <h3 style="margin-top: 0; color: #f0f;">Developer Settings</h3>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
+                    Unlock All Skins
+                    <input type="checkbox" id="devUnlockToggle" style="width: 20px; height: 20px;">
+                </label>
+                <div style="display: flex; flex-direction: column; font-size: 18px; color: #fff;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        Custom Speed <span id="devSpeedText">150</span>
+                    </div>
+                    <input type="range" id="devSpeedSlider" min="50" max="500" step="10" value="150" style="margin: 0;">
+                </div>
+            </div>
+
+            <button id="closeOptionsBtn" class="secondary-btn">Back</button>
         </div>
+
+
 
         <!-- Credits Panel -->
         <div id="creditsPanel" class="panel">
@@ -427,6 +456,12 @@ try { highScore = parseInt(localStorage.getItem('pathlockHighScore')) || 0; } ca
 let cameraX = -75;
 let lastTime = 0;
 let audioCtx = null;
+let masterVolume = 0.5;
+let isMuted = false;
+let devUnlockAll = false;
+let customSpeedOverride = null;
+let bgmOscillators = [];
+let bgmGain = null;
 
 // Handle resizing
 function resizeCanvas() {
@@ -508,6 +543,7 @@ function showPanel(panelId) {
     document.getElementById('mainMenuPanel').classList.remove('active');
     document.getElementById('creditsPanel').classList.remove('active');
     document.getElementById('tutorialPanel').classList.remove('active');
+    document.getElementById('optionsPanel').classList.remove('active');
     
     if (panelId) {
         document.getElementById(panelId).classList.add('active');
@@ -625,7 +661,7 @@ function updateSkinUI() {
     
     document.getElementById('menuCoinValue').innerText = coins;
     
-    let isUnlocked = unlockedSkins.includes(currentSkinIndex);
+    let isUnlocked = devUnlockAll || unlockedSkins.includes(currentSkinIndex);
     let buyBtn = document.getElementById('buySkinBtn');
     let statusDiv = document.getElementById('skinStatus');
     let startBtn = document.getElementById('mainButton');
@@ -686,22 +722,127 @@ document.getElementById('backToMenuBtn').addEventListener('click', () => {
 });
 
 document.getElementById('tutorialBtn').addEventListener('click', () => {
-    gameState = 'TUTORIAL';
-    showPanel('tutorialPanel');
+    initAudio();
+    startTutorial();
 });
+
+document.getElementById('optionsBtn').addEventListener('click', () => {
+    gameState = 'OPTIONS';
+    showPanel('optionsPanel');
+});
+
+document.getElementById('closeOptionsBtn').addEventListener('click', () => {
+    gameState = 'MENU';
+    showPanel('mainMenuPanel');
+});
+
+document.getElementById('muteToggle').addEventListener('change', (e) => {
+    isMuted = e.target.checked;
+    if (bgmGain) bgmGain.gain.setTargetAtTime(isMuted ? 0 : masterVolume * 0.4, audioCtx.currentTime, 0.1);
+});
+
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+    masterVolume = parseFloat(e.target.value);
+    if (!isMuted && bgmGain) bgmGain.gain.setTargetAtTime(masterVolume * 0.4, audioCtx.currentTime, 0.1);
+});
+
+document.getElementById('devUnlockToggle').addEventListener('change', (e) => {
+    devUnlockAll = e.target.checked;
+    updateSkinUI();
+});
+
+document.getElementById('devSpeedSlider').addEventListener('input', (e) => {
+    let spd = parseInt(e.target.value);
+    document.getElementById('devSpeedText').innerText = spd;
+    customSpeedOverride = spd;
+    if (gameState === 'PLAYING') {
+        baseSpeed = spd;
+        speed = spd;
+    }
+});
+
+let bgmInterval = null;
+let currentChordIdx = 0;
 
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
+    startBGM();
+}
+
+function startBGM() {
+    if (bgmInterval || !audioCtx) return;
+    
+    bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = isMuted ? 0 : masterVolume * 0.4;
+    bgmGain.connect(audioCtx.destination);
+    
+    const chords = [
+        [261.63, 329.63, 392.00, 493.88], // Cmaj7
+        [220.00, 261.63, 329.63, 392.00], // Am7
+        [174.61, 220.00, 261.63, 329.63], // Fmaj7
+        [196.00, 246.94, 293.66, 349.23]  // G7
+    ];
+    let tempo = 1.5;
+    
+    function playBeat() {
+        if (audioCtx.state !== 'running') return;
+        let t = audioCtx.currentTime + 0.05;
+        let chord = chords[currentChordIdx % 4];
+        
+        chord.forEach(freq => {
+            let osc = audioCtx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            let env = audioCtx.createGain();
+            env.gain.setValueAtTime(0, t);
+            env.gain.linearRampToValueAtTime(0.1, t + 0.2);
+            env.gain.exponentialRampToValueAtTime(0.01, t + tempo - 0.1);
+            osc.connect(env);
+            env.connect(bgmGain);
+            osc.start(t);
+            osc.stop(t + tempo);
+        });
+        
+        let kickOsc = audioCtx.createOscillator();
+        let kickGain = audioCtx.createGain();
+        kickOsc.frequency.setValueAtTime(150, t);
+        kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
+        kickGain.gain.setValueAtTime(0.4, t);
+        kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+        kickOsc.connect(kickGain);
+        kickGain.connect(bgmGain);
+        kickOsc.start(t);
+        kickOsc.stop(t + 0.1);
+        
+        let snareT = t + tempo/2;
+        let snareOsc = audioCtx.createOscillator();
+        let snareGain = audioCtx.createGain();
+        snareOsc.type = 'square';
+        snareOsc.frequency.setValueAtTime(800, snareT);
+        snareOsc.frequency.exponentialRampToValueAtTime(100, snareT + 0.1);
+        snareGain.gain.setValueAtTime(0.1, snareT);
+        snareGain.gain.exponentialRampToValueAtTime(0.01, snareT + 0.1);
+        snareOsc.connect(snareGain);
+        snareGain.connect(bgmGain);
+        snareOsc.start(snareT);
+        snareOsc.stop(snareT + 0.1);
+        
+        currentChordIdx++;
+    }
+    
+    playBeat();
+    bgmInterval = setInterval(playBeat, tempo * 1000);
 }
 
 function playTone(freq, type, duration, vol=0.1) {
-    if (!audioCtx || audioCtx.state !== 'running') return;
+    if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
+    let finalVol = vol * masterVolume;
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.setValueAtTime(finalVol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -710,13 +851,14 @@ function playTone(freq, type, duration, vol=0.1) {
 }
 
 function playSweep(startFreq, endFreq, type, duration, vol=0.1) {
-    if (!audioCtx || audioCtx.state !== 'running') return;
+    if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
+    let finalVol = vol * masterVolume;
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.setValueAtTime(finalVol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -871,19 +1013,59 @@ function prepareStartGame() {
     startGame();
 }
 
-document.getElementById('tutorialGotItBtn').addEventListener('click', () => {
-    gameState = 'MENU';
-    showPanel('mainMenuPanel');
-});
 
-function startGame() {
+
+let isTutorial = false;
+let tutorialStep = 0;
+
+function startTutorial() {
     grid.clear();
     nextValidRow = 1;
     highestColGenerated = -1;
     score = 0;
     totalDistanceThisRun = 0;
     
-    baseSpeed = diffMap[difficultySlider.value].speed;
+    baseSpeed = 100;
+    speed = 100;
+    isTutorial = true;
+    tutorialStep = 0;
+    
+    runner = { col: 0, row: 1, entrySide: 3, distance: 0, fallX: 0, fallY: 0, vx: 0, vy: 0 };
+    
+    grid.set(0, [null, { sides: [3, 1] }, null]);
+    grid.set(1, [null, { sides: [3, 1] }, null]);
+    grid.set(2, [null, { sides: [0, 2] }, null]); // The broken link
+    grid.set(3, [null, { sides: [3, 1], hasCoin: true }, null]);
+    highestColGenerated = 3;
+    
+    cameraX = -75;
+    
+    gameState = 'PLAYING';
+    showPanel(null);
+    scoreDisplay.style.display = 'none';
+    highScoreDisplay.style.display = 'none';
+    document.getElementById('coinDisplay').style.display = 'block';
+    
+    let overlay = document.getElementById('countdownOverlay');
+    overlay.style.display = 'block';
+    overlay.style.fontSize = '40px';
+    overlay.innerText = "Welcome to Pathlock!\nClick on tiles to rotate them.";
+    
+    setTimeout(() => {
+        if (gameState === 'PLAYING' && isTutorial && tutorialStep === 0) overlay.style.display = 'none';
+    }, 3000);
+}
+
+function startGame() {
+    isTutorial = false;
+    grid.clear();
+    nextValidRow = 1;
+    highestColGenerated = -1;
+    score = 0;
+    totalDistanceThisRun = 0;
+    
+    let baseSpd = diffMap[difficultySlider.value].speed;
+    baseSpeed = customSpeedOverride ? customSpeedOverride : baseSpd;
     speed = baseSpeed;
     
     runner = {
@@ -1081,9 +1263,41 @@ function update(dt) {
                 return;
             }
             
+            if (isTutorial && nextCol > 3) {
+                gameState = 'MENU';
+                showPanel('mainMenuPanel');
+                document.getElementById('scoreDisplay').style.display = 'none';
+                document.getElementById('highScoreDisplay').style.display = 'none';
+                document.getElementById('coinDisplay').style.display = 'none';
+                
+                let overlay = document.getElementById('countdownOverlay');
+                overlay.style.display = 'block';
+                overlay.style.fontSize = '40px';
+                overlay.innerText = "Tutorial Complete!";
+                playMilestone();
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    document.getElementById('lastScoreDisplay').style.display = 'block';
+                    document.getElementById('lastScoreValue').innerText = 'Tutorial Complete!';
+                }, 2000);
+                return;
+            }
+            
             ensureColumns(nextCol + 6);
             
             let nextTileObj = grid.get(nextCol)[nextRow];
+            
+            if (isTutorial && tutorialStep === 0 && runner.col === 1 && remainingPath - distToMove < 20) {
+                if (!nextTileObj.sides.includes(nextEntrySide)) {
+                    gameState = 'TUTORIAL_PAUSE';
+                    let overlay = document.getElementById('countdownOverlay');
+                    overlay.style.display = 'block';
+                    overlay.innerText = "Rotate the next tile\nto connect the path!";
+                    return;
+                }
+            }
+            
             if (!nextTileObj.sides.includes(nextEntrySide)) {
                 crashRunner(exitSide);
                 return;
@@ -1299,7 +1513,7 @@ function handleInteraction(e) {
         e.preventDefault();
     }
     initAudio();
-    if (gameState !== 'PLAYING') return;
+    if (gameState !== 'PLAYING' && gameState !== 'TUTORIAL_PAUSE') return;
 
     let clientX, clientY;
     if (e.touches && e.touches.length > 0) {
@@ -1331,6 +1545,27 @@ function handleInteraction(e) {
         
         playSweep(800, 400, 'sine', 0.1, 0.05);
         spawnParticles(col * 150 + 75, row * 150 + 75, 10, '#fff', 150, 0.3, true);
+        
+        if (gameState === 'TUTORIAL_PAUSE') {
+            let currTile = grid.get(runner.col)[runner.row];
+            let exitSide = null;
+            if (currTile.sides[0] === runner.entrySide) exitSide = currTile.sides[1];
+            else if (currTile.sides[1] === runner.entrySide) exitSide = currTile.sides[0];
+            
+            if (exitSide !== null) {
+                let nextCol = runner.col + dx[exitSide];
+                let nextRow = runner.row + dy[exitSide];
+                let nextEntrySide = (exitSide + 2) % 4;
+                
+                if (col === nextCol && row === nextRow) {
+                    if (tObj.sides.includes(nextEntrySide)) {
+                        gameState = 'PLAYING';
+                        document.getElementById('countdownOverlay').style.display = 'none';
+                        tutorialStep = 1;
+                    }
+                }
+            }
+        }
     }
 }
 
