@@ -252,6 +252,14 @@
         max-width: 600px;
     }
 
+    /* Level Selection Screen */
+    .level-btn-1 { border-color: #0ff; color: #0ff; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.2); }
+    .level-btn-1:hover { background: #0ff; color: #fff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.6); }
+    .level-btn-2 { border-color: #0f0; color: #0f0; box-shadow: 0 0 10px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.2); }
+    .level-btn-2:hover { background: #0f0; color: #fff; box-shadow: 0 0 20px rgba(0, 255, 0, 0.6), inset 0 0 15px rgba(0, 255, 0, 0.6); }
+    .level-btn-3 { border-color: #f0f; color: #f0f; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3), inset 0 0 10px rgba(255, 0, 255, 0.2); }
+    .level-btn-3:hover { background: #f0f; color: #fff; box-shadow: 0 0 20px rgba(255, 0, 255, 0.6), inset 0 0 15px rgba(255, 0, 255, 0.6); }
+
     /* Loading Screen */
     #loadingScreen {
         position: absolute;
@@ -327,11 +335,25 @@
             <button id="creditsBtn" class="secondary-btn">Credits</button>
         </div>
 
+        <!-- Level Selection Panel -->
+        <div id="levelSelectionPanel" class="panel">
+            <h1>Select Level</h1>
+            <div class="btn-group" style="flex-direction: column; align-items: center;">
+                <button id="level1Btn" class="level-btn-1">Level 1</button>
+                <button id="level2Btn" class="level-btn-2">Level 2</button>
+                <button id="level3Btn" class="level-btn-3">Level 3</button>
+            </div>
+            <div class="btn-group" style="margin-top: 40px;">
+                <button id="tutorialBtn" class="secondary-btn">Tutorial</button>
+                <button id="backToMenuFromLevelBtn" class="secondary-btn">Back</button>
+            </div>
+        </div>
+
         <!-- Tutorial Panel -->
         <div id="tutorialPanel" class="panel">
             <h1>How to Play</h1>
             <div class="subtitle">Click upcoming tiles to rotate them.<br>Build a continuous path for the runner!</div>
-            <button id="tutorialGotItBtn">Got it!</button>
+            <button id="tutorialGotItBtn" class="secondary-btn">Back</button>
         </div>
 
         <!-- Credits Panel -->
@@ -405,6 +427,14 @@ const skins = [
 let currentSkinIndex = parseInt(localStorage.getItem('gridDashSkin')) || 0;
 if (highScore < skins[currentSkinIndex].requiredScore) currentSkinIndex = 0; 
 
+// Levels Setup
+const levels = [
+    { primaryColor: '#0ff', secondaryColor: '#088', shape: 'circle' },
+    { primaryColor: '#0f0', secondaryColor: '#080', shape: 'diamond' },
+    { primaryColor: '#f0f', secondaryColor: '#808', shape: 'triangle' }
+];
+let currentLevelIndex = 0;
+
 const SIDE_POINTS = [
     {x: 75, y: 0}, {x: 150, y: 75}, {x: 75, y: 150}, {x: 0, y: 75}
 ];
@@ -433,6 +463,7 @@ difficultyText.innerText = diffMap[difficultySlider.value].text;
 // --- UI Logic ---
 function showPanel(panelId) {
     document.getElementById('mainMenuPanel').classList.remove('active');
+    document.getElementById('levelSelectionPanel').classList.remove('active');
     document.getElementById('creditsPanel').classList.remove('active');
     document.getElementById('tutorialPanel').classList.remove('active');
     
@@ -525,6 +556,20 @@ document.getElementById('creditsBtn').addEventListener('click', () => {
 document.getElementById('backToMenuBtn').addEventListener('click', () => {
     gameState = 'MENU';
     showPanel('mainMenuPanel');
+});
+
+document.getElementById('backToMenuFromLevelBtn').addEventListener('click', () => {
+    gameState = 'MENU';
+    showPanel('mainMenuPanel');
+});
+
+document.getElementById('level1Btn').addEventListener('click', () => { currentLevelIndex = 0; startGame(); });
+document.getElementById('level2Btn').addEventListener('click', () => { currentLevelIndex = 1; startGame(); });
+document.getElementById('level3Btn').addEventListener('click', () => { currentLevelIndex = 2; startGame(); });
+
+document.getElementById('tutorialBtn').addEventListener('click', () => {
+    gameState = 'TUTORIAL';
+    showPanel('tutorialPanel');
 });
 
 function initAudio() {
@@ -636,17 +681,13 @@ function ensureColumns(maxCol) {
 
 function prepareStartGame() {
     initAudio();
-    if (!localStorage.getItem('gridDashTutorialShown')) {
-        gameState = 'TUTORIAL';
-        showPanel('tutorialPanel');
-    } else {
-        startGame();
-    }
+    gameState = 'LEVEL_SELECT';
+    showPanel('levelSelectionPanel');
 }
 
 document.getElementById('tutorialGotItBtn').addEventListener('click', () => {
-    localStorage.setItem('gridDashTutorialShown', 'true');
-    startGame();
+    gameState = 'LEVEL_SELECT';
+    showPanel('levelSelectionPanel');
 });
 
 function startGame() {
@@ -828,13 +869,15 @@ function drawTile(ctx, tile, x, y, isCurrent) {
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, 150, 150);
 
-    ctx.strokeStyle = isCurrent ? "#0ff" : "#088";
+    let levelTheme = levels[currentLevelIndex];
+
+    ctx.strokeStyle = isCurrent ? levelTheme.primaryColor : levelTheme.secondaryColor;
     ctx.lineWidth = 14;
     ctx.lineCap = "round";
     
     if (isCurrent) {
         ctx.shadowBlur = 20;
-        ctx.shadowColor = "#0ff";
+        ctx.shadowColor = levelTheme.primaryColor;
     }
 
     ctx.beginPath();
@@ -855,10 +898,22 @@ function drawTile(ctx, tile, x, y, isCurrent) {
     }
     ctx.stroke();
 
-    ctx.fillStyle = isCurrent ? "#0ff" : "#088";
+    ctx.fillStyle = isCurrent ? levelTheme.primaryColor : levelTheme.secondaryColor;
     ctx.shadowBlur = 0;
     ctx.beginPath();
-    ctx.arc(75, 75, 6, 0, Math.PI*2);
+    
+    if (levelTheme.shape === 'circle') {
+        ctx.arc(75, 75, 6, 0, Math.PI*2);
+    } else if (levelTheme.shape === 'diamond') {
+        ctx.moveTo(75, 65);
+        ctx.lineTo(85, 75);
+        ctx.lineTo(75, 85);
+        ctx.lineTo(65, 75);
+    } else if (levelTheme.shape === 'triangle') {
+        ctx.moveTo(75, 66);
+        ctx.lineTo(84, 80);
+        ctx.lineTo(66, 80);
+    }
     ctx.fill();
 
     ctx.restore();
@@ -911,7 +966,7 @@ function draw() {
         ctx.shadowColor = skin.color;
         drawSkinPattern(ctx, skin, runner.fallX, runner.fallY, 1, Date.now() / 300);
         ctx.restore();
-    } else if (gameState === 'MENU' || gameState === 'CREDITS' || gameState === 'TUTORIAL') {
+    } else if (gameState === 'MENU' || gameState === 'LEVEL_SELECT' || gameState === 'CREDITS' || gameState === 'TUTORIAL') {
         let skin = skins[currentSkinIndex];
         ctx.save();
         ctx.shadowBlur = 25;
