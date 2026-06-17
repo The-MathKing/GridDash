@@ -397,10 +397,9 @@
         <div id="creditsPanel" class="panel">
             <h1>Credits</h1>
             <div class="stats" style="margin-bottom: 30px;">
-                <span>Created by Thummo Studios, inspired by Vienna</span><br><br>
                 Music & Sound: Web Audio API<br>
                 Graphics: Canvas 2D<br>
-                Design: Indie Developer
+                Created by Thummo Studios, inspired by Vienna
             </div>
             <button id="backToMenuBtn" class="secondary-btn">Back</button>
         </div>
@@ -1040,6 +1039,7 @@ function startTutorial() {
     highestColGenerated = -1;
     score = 0;
     totalDistanceThisRun = 0;
+    lastTime = 0;
     
     baseSpeed = 100;
     speed = 100;
@@ -1079,6 +1079,7 @@ function startGame() {
     highestColGenerated = -1;
     score = 0;
     totalDistanceThisRun = 0;
+    lastTime = 0;
     
     let baseSpd = diffMap[difficultySlider.value].speed;
     baseSpeed = customSpeedOverride ? customSpeedOverride : baseSpd;
@@ -1262,6 +1263,7 @@ function update(dt) {
             distToMove = 0;
             
             if (grid.has(runner.col - 4)) grid.delete(runner.col - 4);
+        } else {
             let nextCol = runner.col + dx[exitSide];
             let nextRow = runner.row + dy[exitSide];
             let nextEntrySide = (exitSide + 2) % 4;
