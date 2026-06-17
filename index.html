@@ -531,7 +531,7 @@ const themes = [
     { name: 'Neon Cyber', bgColor: '#0a0a10', pathColor: '#0ff', pathShadow: '#088', particleColor: '#0ff', price: 0 },
     { name: 'Retro Synth', bgColor: '#1a0b2e', pathColor: '#f0f', pathShadow: '#808', particleColor: '#f0f', price: 20 },
     { name: 'Toxic Waste', bgColor: '#0d1a0d', pathColor: '#0f0', pathShadow: '#080', particleColor: '#0f0', price: 40 },
-    { name: 'Crimson Hell', bgColor: '#1a0505', pathColor: '#f00', pathShadow: '#800', particleColor: '#f00', price: 60 },
+    { name: 'Crimson Fury', bgColor: '#1a0505', pathColor: '#f00', pathShadow: '#800', particleColor: '#f00', price: 60 },
     { name: 'Arctic Ice', bgColor: '#001122', pathColor: '#fff', pathShadow: '#8df', particleColor: '#8df', price: 80 }
 ];
 
@@ -589,6 +589,7 @@ function showPanel(panelId) {
     document.getElementById('mainMenuPanel').classList.remove('active');
     document.getElementById('creditsPanel').classList.remove('active');
     document.getElementById('optionsPanel').classList.remove('active');
+    document.getElementById('pausePanel').classList.remove('active');
     
     if (panelId) {
         document.getElementById(panelId).classList.add('active');
@@ -1207,13 +1208,15 @@ function startTutorial() {
     
     grid.set(0, [null, { sides: [3, 1] }, null]);
     grid.set(1, [null, { sides: [3, 1] }, null]);
-    grid.set(2, [
+    grid.set(2, [null, { sides: [3, 1] }, null]);
+    grid.set(3, [null, { sides: [3, 1] }, null]);
+    grid.set(4, [
         { sides: [0, 3], hasCoin: true }, // needs [1, 2]
         { sides: [1, 2] },                // needs [0, 3]
         null
     ]);
-    grid.set(3, [{ sides: [3, 1] }, null, null]);
-    highestColGenerated = 3;
+    grid.set(5, [{ sides: [3, 1] }, null, null]);
+    highestColGenerated = 5;
     
     cameraX = -75;
     
@@ -1377,11 +1380,28 @@ function update(dt) {
     
     if (gameState !== 'PLAYING') return;
 
+    let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
+    let targetSpeed = baseSpeed + (baseSpeed * 0.1) * Math.floor(blocksTraveled / 100);
+    
+    if (isTutorial && tutorialStep === 0 && runner.col === 3) {
+        let nextTileObj = grid.get(4) ? grid.get(4)[1] : null;
+        if (nextTileObj && !nextTileObj.sides.includes(3)) {
+            let tileCol = grid.get(runner.col);
+            let tObj = tileCol ? tileCol[runner.row] : null;
+            if (tObj) {
+                let isStraight = Math.abs(tObj.sides[0] - tObj.sides[1]) === 2;
+                let pathLength = isStraight ? 150 : (Math.PI * 75 / 2);
+                let remainingPath = pathLength - runner.distance;
+                if (remainingPath < 75) {
+                    targetSpeed = Math.max(15, targetSpeed * (remainingPath / 75));
+                }
+            }
+        }
+    }
+    speed = targetSpeed;
+    
     let distToMove = speed * dt;
     totalDistanceThisRun += distToMove;
-    
-    let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
-    speed = baseSpeed + (baseSpeed * 0.1) * Math.floor(blocksTraveled / 100);
     
     let currentBeatInterval = Math.max(0.2, 100 / speed);
     lastBeatTime += dt;
@@ -1434,7 +1454,7 @@ function update(dt) {
             let nextRow = runner.row + dy[exitSide];
             let nextEntrySide = (exitSide + 2) % 4;
 
-            if (isTutorial && tutorialStep === 0 && runner.col === 1) {
+            if (isTutorial && tutorialStep === 0 && runner.col === 3) {
                 let nextTileObj = grid.get(nextCol) ? grid.get(nextCol)[nextRow] : null;
                 if (nextTileObj && !nextTileObj.sides.includes(nextEntrySide)) {
                     gameState = 'TUTORIAL_PAUSE';
