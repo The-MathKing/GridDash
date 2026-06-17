@@ -328,6 +328,7 @@
     </div>
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
     <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
+    <button id="fullscreenBtn" style="position: absolute; top: 20px; right: 20px; z-index: 100; font-size: 24px; padding: 5px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">⛶</button>
     
     <div id="uiLayer">
         <!-- Main Menu Panel -->
@@ -882,6 +883,16 @@ function update(dt) {
         if (p.life <= 0) particles.splice(i, 1);
     }
 
+    for (let [c, colTiles] of grid.entries()) {
+        for (let r = 0; r < 3; r++) {
+            let tObj = colTiles[r];
+            if (tObj && tObj.falling) {
+                tObj.fallVy += 1500 * dt;
+                tObj.fallY += tObj.fallVy * dt;
+            }
+        }
+    }
+
     if (gameState === 'GAMEOVER') {
         runner.fallX += runner.vx * dt;
         runner.fallY += runner.vy * dt;
@@ -935,6 +946,10 @@ function update(dt) {
         } else {
             distToMove -= remainingPath;
             score += remainingPath * 0.1;
+            
+            tObj.falling = true;
+            tObj.fallVy = 0;
+            tObj.fallY = 0;
             
             let nextCol = runner.col + dx[exitSide];
             let nextRow = runner.row + dy[exitSide];
@@ -1049,9 +1064,11 @@ function draw() {
     
     ctx.save();
     
-    // Scale to fit window height and center
-    let scale = canvas.height / 450;
+    // Scale to fit window width/height appropriately
+    let scale = Math.min(canvas.width / 600, canvas.height / 450);
+    let offsetY = (canvas.height / scale - 450) / 2;
     ctx.scale(scale, scale);
+    ctx.translate(0, offsetY);
     
     if (shakeTime > 0) {
         ctx.translate((Math.random() - 0.5) * shakeMagnitude, (Math.random() - 0.5) * shakeMagnitude);
@@ -1081,8 +1098,12 @@ function draw() {
         if (grid.has(c)) {
             let colTiles = grid.get(c);
             for (let r = 0; r < 3; r++) {
-                let isCurrent = gameState === 'PLAYING' && c === runner.col && r === runner.row;
-                drawTile(ctx, colTiles[r], c * 150, r * 150, isCurrent);
+                let tObj = colTiles[r];
+                if (tObj) {
+                    let yOffset = tObj.fallY || 0;
+                    let isCurrent = gameState === 'PLAYING' && c === runner.col && r === runner.row;
+                    drawTile(ctx, tObj, c * 150, r * 150 + yOffset, isCurrent);
+                }
             }
         }
     }
@@ -1154,10 +1175,10 @@ function handleInteraction(e) {
         clientX = e.clientX;
         clientY = e.clientY;
     }
-    
-    let scale = canvas.height / 450;
+    let scale = Math.min(canvas.width / 600, canvas.height / 450);
+    let offsetY = (canvas.height / scale - 450) / 2;
     let x = clientX / scale;
-    let y = clientY / scale;
+    let y = clientY / scale - offsetY;
     
     let worldX = x + cameraX;
     let worldY = y;
@@ -1169,6 +1190,8 @@ function handleInteraction(e) {
         if (col === runner.col && row === runner.row) return;
         
         let tObj = grid.get(col)[row];
+        if (tObj.falling) return;
+        
         tObj.sides[0] = (tObj.sides[0] + 1) % 4;
         tObj.sides[1] = (tObj.sides[1] + 1) % 4;
         
@@ -1181,6 +1204,14 @@ canvas.addEventListener('mousedown', handleInteraction);
 canvas.addEventListener('touchstart', handleInteraction, {passive: false});
 
 document.getElementById('mainButton').addEventListener('click', prepareStartGame);
+
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+});
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') {
