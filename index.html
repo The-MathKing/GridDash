@@ -526,18 +526,12 @@ if (!unlockedSkins.includes(currentSkinIndex)) currentSkinIndex = 0;
 
 // Themes Setup
 const themes = [
-    { name: 'Neon Cyber', bgColor: '#0a0a10', pathColor: '#0ff', pathShadow: '#088', particleColor: '#0ff', price: 0 },
-    { name: 'Retro Synth', bgColor: '#1a0b2e', pathColor: '#f0f', pathShadow: '#808', particleColor: '#f0f', price: 20 },
-    { name: 'Toxic Waste', bgColor: '#0d1a0d', pathColor: '#0f0', pathShadow: '#080', particleColor: '#0f0', price: 40 },
-    { name: 'Crimson Fury', bgColor: '#1a0505', pathColor: '#f00', pathShadow: '#800', particleColor: '#f00', price: 60 },
-    { name: 'Arctic Ice', bgColor: '#001122', pathColor: '#fff', pathShadow: '#8df', particleColor: '#8df', price: 80 }
+    { name: 'Neon Cyber', bgColor: '#0a0a10', pathColor: '#0ff', pathShadow: '#088', particleColor: '#0ff', unlockScore: 0 },
+    { name: 'Retro Synth', bgColor: '#1a0b2e', pathColor: '#f0f', pathShadow: '#808', particleColor: '#f0f', unlockScore: 2500 },
+    { name: 'Toxic Waste', bgColor: '#0d1a0d', pathColor: '#0f0', pathShadow: '#080', particleColor: '#0f0', unlockScore: 5000 },
+    { name: 'Crimson Fury', bgColor: '#1a0505', pathColor: '#f00', pathShadow: '#800', particleColor: '#f00', unlockScore: 7500 },
+    { name: 'Arctic Ice', bgColor: '#001122', pathColor: '#fff', pathShadow: '#8df', particleColor: '#8df', unlockScore: 10000 }
 ];
-
-let unlockedThemes = [0];
-try { 
-    let stored = localStorage.getItem('pathlockUnlockedThemes');
-    if (stored) unlockedThemes = JSON.parse(stored);
-} catch (e) {}
 
 let currentThemeIndex = 0;
 try { currentThemeIndex = parseInt(localStorage.getItem('pathlockTheme')) || 0; } catch (e) {}
@@ -708,21 +702,20 @@ function updateStoreUI() {
     themeBox.style.border = `2px solid ${theme.pathColor}`;
     themeBox.style.boxShadow = `inset 0 0 10px ${theme.pathShadow}, 0 0 10px ${theme.pathShadow}`;
     
-    let isThemeUnlocked = devUnlockAll || unlockedThemes.includes(currentThemeIndex);
+    let isThemeUnlocked = devUnlockAll || highScore >= theme.unlockScore;
     let buyThemeBtn = document.getElementById('buyThemeBtn');
     let themeStatusDiv = document.getElementById('themeStatus');
+    
+    buyThemeBtn.style.display = 'none'; // No longer buyable with coins
     
     if (isThemeUnlocked) {
         themeStatusDiv.innerText = 'Unlocked';
         themeStatusDiv.style.color = '#aaa';
         themeStatusDiv.style.display = 'block';
-        buyThemeBtn.style.display = 'none';
     } else {
-        themeStatusDiv.style.display = 'none';
-        buyThemeBtn.style.display = 'inline-block';
-        buyThemeBtn.innerText = `Buy (${theme.price})`;
-        buyThemeBtn.disabled = coins < theme.price;
-        buyThemeBtn.style.opacity = buyThemeBtn.disabled ? '0.5' : '1.0';
+        themeStatusDiv.innerText = 'Requires Score: ' + theme.unlockScore;
+        themeStatusDiv.style.color = '#f00';
+        themeStatusDiv.style.display = 'block';
     }
     try { localStorage.setItem('pathlockTheme', currentThemeIndex); } catch (e) {}
 
@@ -776,18 +769,7 @@ document.getElementById('nextThemeBtn').addEventListener('click', () => {
     }
 });
 
-document.getElementById('buyThemeBtn').addEventListener('click', () => {
-    let theme = themes[currentThemeIndex];
-    if (coins >= theme.price && !unlockedThemes.includes(currentThemeIndex)) {
-        coins -= theme.price;
-        unlockedThemes.push(currentThemeIndex);
-        try { 
-            localStorage.setItem('pathlockCoins', coins);
-            localStorage.setItem('pathlockUnlockedThemes', JSON.stringify(unlockedThemes));
-        } catch (e) {}
-        updateStoreUI();
-    }
-});
+
 
 document.getElementById('creditsBtn').addEventListener('click', () => {
     gameState = 'CREDITS';
@@ -882,14 +864,14 @@ function startBGM() {
     bgmGain.connect(audioCtx.destination);
     
     let chords, tempo, waveType, beatPattern;
-    let trackIndex = currentThemeIndex % 3; // 3 soundtracks available
+    let trackIndex = currentThemeIndex; // 5 soundtracks available
     
-    if (trackIndex === 0) { // Lo-Fi Chill
+    if (trackIndex === 0) { // Neon Cyber: Lo-Fi Chill
         chords = [ [261.63, 329.63, 392.00, 493.88], [220.00, 261.63, 329.63, 392.00], [174.61, 220.00, 261.63, 329.63], [196.00, 246.94, 293.66, 349.23] ];
         tempo = 1.5;
         waveType = 'triangle';
         beatPattern = 'lofi';
-    } else if (trackIndex === 1) { // Arcade Fast
+    } else if (trackIndex === 1) { // Retro Synth: Arcade Fast
         chords = [ 
             [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88],
             [440, 523.25, 659.25], [349.23, 440, 523.25], [493.88, 587.33, 739.99], [392, 493.88, 587.33],
@@ -899,7 +881,17 @@ function startBGM() {
         tempo = 0.5;
         waveType = 'square';
         beatPattern = 'arcade';
-    } else { // Ambient Dark
+    } else if (trackIndex === 2) { // Toxic Waste: Quirky Chiptune
+        chords = [ [293.66, 349.23, 440], [261.63, 311.13, 392], [277.18, 329.63, 415.30], [293.66, 349.23, 440] ];
+        tempo = 0.6;
+        waveType = 'sawtooth';
+        beatPattern = 'arcade';
+    } else if (trackIndex === 3) { // Crimson Fury: Intense Driving Bass
+        chords = [ [130.81, 164.81, 196], [146.83, 174.61, 220], [130.81, 164.81, 196], [110.00, 130.81, 164.81] ];
+        tempo = 0.4;
+        waveType = 'square';
+        beatPattern = 'intense';
+    } else { // Arctic Ice: Ambient Dark
         chords = [ [130.81, 196, 261.63], [146.83, 220, 293.66] ];
         tempo = 3.0;
         waveType = 'sine';
@@ -936,7 +928,7 @@ function startBGM() {
             osc.stop(t + (beatPattern === 'ambient' ? tempo : (beatPattern === 'arcade' ? 0.3 : tempo)));
         });
         
-        if (beatPattern === 'lofi' || beatPattern === 'arcade') {
+        if (beatPattern === 'lofi' || beatPattern === 'arcade' || beatPattern === 'intense') {
             let kickOsc = audioCtx.createOscillator();
             let kickGain = audioCtx.createGain();
             kickOsc.frequency.setValueAtTime(beatPattern === 'arcade' ? 200 : 150, t);
