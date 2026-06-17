@@ -1051,7 +1051,7 @@ let bgmVolumeValueText = document.getElementById('bgmVolumeValueText');
 document.getElementById('bgmVolumeSlider').addEventListener('input', (e) => {
     bgmVolume = parseFloat(e.target.value);
     bgmVolumeValueText.innerText = Math.round(bgmVolume * 100);
-    if (bgmGain) bgmGain.gain.setTargetAtTime(bgmVolume * 0.4, audioCtx.currentTime, 0.1);
+    if (currentBgmAudio) currentBgmAudio.volume = bgmVolume * 0.4;
 });
 
 document.getElementById('devLoginBtn').addEventListener('click', () => {
@@ -1128,8 +1128,19 @@ function initAudio() {
     }
 }
 
+const trackUrls = [
+    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"
+];
+
 function startBGM() {
-    if (!audioCtx) return;
+    if (currentBgmAudio) {
+        currentBgmAudio.pause();
+        currentBgmAudio = null;
+    }
     if (bgmInterval) {
         clearInterval(bgmInterval);
         bgmInterval = null;
@@ -1138,127 +1149,15 @@ function startBGM() {
         bgmGain.disconnect();
     }
     
-    bgmGain = audioCtx.createGain();
-    bgmGain.gain.value = bgmVolume * 0.4;
-    bgmGain.connect(masterCompressor);
+    let url = trackUrls[currentThemeIndex % trackUrls.length];
+    currentBgmAudio = new Audio(url);
+    currentBgmAudio.loop = true;
+    currentBgmAudio.volume = bgmVolume * 0.4;
     
-    let chords, tempo, waveType, beatPattern;
-    let trackIndex = currentThemeIndex; // 5 soundtracks available
-    
-    if (trackIndex === 0) { // Neon Cyber: Lo-Fi Chill
-        chords = [ [261.63, 329.63, 392.00, 493.88], [220.00, 261.63, 329.63, 392.00], [174.61, 220.00, 261.63, 329.63], [196.00, 246.94, 293.66, 349.23] ];
-        tempo = 1.5;
-        waveType = 'triangle';
-        beatPattern = 'lofi';
-    } else if (trackIndex === 1) { // Retro Synth: Arcade Fast
-        chords = [ 
-            [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88],
-            [440, 523.25, 659.25], [349.23, 440, 523.25], [493.88, 587.33, 739.99], [392, 493.88, 587.33],
-            [349.23, 440, 523.25], [329.63, 392, 493.88], [440, 523.25, 659.25], [493.88, 587.33, 739.99],
-            [523.25, 659.25, 880], [493.88, 587.33, 739.99], [440, 523.25, 659.25], [392, 493.88, 587.33]
-        ];
-        tempo = 0.5;
-        waveType = 'square';
-        beatPattern = 'arcade';
-    } else if (trackIndex === 2) { // Toxic Waste: Quirky Chiptune
-        chords = [ [293.66, 349.23, 440], [261.63, 311.13, 392], [277.18, 329.63, 415.30], [293.66, 349.23, 440] ];
-        tempo = 0.6;
-        waveType = 'sawtooth';
-        beatPattern = 'arcade';
-    } else if (trackIndex === 3) { // Crimson Fury: Intense Driving Bass
-        chords = [ [130.81, 164.81, 196], [146.83, 174.61, 220], [130.81, 164.81, 196], [110.00, 130.81, 164.81] ];
-        tempo = 0.4;
-        waveType = 'square';
-        beatPattern = 'intense';
-    } else { // Arctic Ice: Ambient Dark
-        chords = [ [130.81, 196, 261.63], [146.83, 220, 293.66] ];
-        tempo = 3.0;
-        waveType = 'sine';
-        beatPattern = 'ambient';
+    let playPromise = currentBgmAudio.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => console.log("Audio play prevented:", e));
     }
-    
-    function playBeat() {
-        if (audioCtx.state !== 'running') return;
-        let t = audioCtx.currentTime + 0.05;
-        let chord = chords[currentChordIdx % chords.length];
-        
-        let intensity = (gameState === 'PLAYING') ? Math.min(1.0, score / 2000) : 0;
-        let arpSpeed = (beatPattern === 'arcade' || intensity > 0.5) ? 0.125 : 0.25;
-        
-        chord.forEach((freq, idx) => {
-            let osc = audioCtx.createOscillator();
-            osc.type = waveType;
-            let arpOffset = (beatPattern === 'arcade' || intensity > 0.3) ? idx * arpSpeed : 0;
-            
-            let modFreq = freq * (1 + (intensity * 0.02 * Math.sin(t * 2)));
-            osc.frequency.setValueAtTime(modFreq, t + arpOffset);
-            
-            let env = audioCtx.createGain();
-            env.gain.setValueAtTime(0, t + arpOffset);
-            
-            if (beatPattern === 'ambient') {
-                env.gain.linearRampToValueAtTime(0.1 + intensity*0.1, t + 1.0);
-                env.gain.linearRampToValueAtTime(0, t + tempo);
-            } else if (beatPattern === 'arcade' || intensity > 0.5) {
-                env.gain.linearRampToValueAtTime(0.05 + intensity*0.05, t + arpOffset + 0.05);
-                env.gain.exponentialRampToValueAtTime(0.001, t + arpOffset + 0.25);
-            } else {
-                env.gain.linearRampToValueAtTime(0.1 + intensity*0.1, t + 0.2);
-                env.gain.exponentialRampToValueAtTime(0.01, t + tempo - 0.1);
-            }
-            
-            osc.connect(env);
-            env.connect(bgmGain);
-            osc.start(t + arpOffset);
-            osc.stop(t + (beatPattern === 'ambient' ? tempo : (beatPattern === 'arcade' ? 0.3 : tempo)));
-        });
-        
-        if (beatPattern === 'lofi' || beatPattern === 'arcade' || beatPattern === 'intense' || intensity > 0.2) {
-            let kickOsc = audioCtx.createOscillator();
-            let kickGain = audioCtx.createGain();
-            kickOsc.frequency.setValueAtTime((beatPattern === 'arcade' || intensity > 0.6) ? 200 : 150, t);
-            kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
-            kickGain.gain.setValueAtTime(0.4 + intensity*0.2, t);
-            kickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-            kickOsc.connect(kickGain);
-            kickGain.connect(bgmGain);
-            kickOsc.start(t);
-            kickOsc.stop(t + 0.1);
-        }
-        
-        if (beatPattern === 'lofi' || intensity > 0.4) {
-            let snareT = t + tempo/2;
-            let snareOsc = audioCtx.createOscillator();
-            let snareGain = audioCtx.createGain();
-            snareOsc.type = 'square';
-            snareOsc.frequency.setValueAtTime(800 + intensity*400, snareT);
-            snareOsc.frequency.exponentialRampToValueAtTime(100, snareT + 0.1);
-            snareGain.gain.setValueAtTime(0.1 + intensity*0.1, snareT);
-            snareGain.gain.exponentialRampToValueAtTime(0.01, snareT + 0.1);
-            snareOsc.connect(snareGain);
-            snareGain.connect(bgmGain);
-            snareOsc.start(snareT);
-            snareOsc.stop(snareT + 0.1);
-        }
-        
-        if (intensity > 0.3 && currentChordIdx % 2 === 0) {
-            let bassOsc = audioCtx.createOscillator();
-            let bassGain = audioCtx.createGain();
-            bassOsc.type = 'sawtooth';
-            bassOsc.frequency.setValueAtTime(chord[0] / 2, t);
-            bassGain.gain.setValueAtTime(0.2, t);
-            bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
-            bassOsc.connect(bassGain);
-            bassGain.connect(bgmGain);
-            bassOsc.start(t);
-            bassOsc.stop(t + 0.2);
-        }
-        
-        currentChordIdx++;
-    }
-    
-    playBeat();
-    bgmInterval = setInterval(playBeat, tempo * 1000);
 }
 
 function playTone(freq, type, duration, vol=0.1) {
@@ -1548,7 +1447,10 @@ function startCredits() {
     grid.set(14, [null, { sides: [3, 1] }, null]);
     
     highestColGenerated = 14;
-    ensureColumns(500); // Randomly generates the rest of the 500-block path!
+    for (let c = 15; c <= 500; c++) {
+        generateColumn(c, false);
+    }
+    highestColGenerated = 500;
     
     cameraX = -75;
     
@@ -1562,7 +1464,7 @@ function startCredits() {
     creditsTextNodes = [
         { col: 1.5, row: getValidRow(1.5), text: "Created by Vienna Studios" },
         { col: 5.5, row: getValidRow(5.5), text: "Game Testers: Thummo & T1" },
-        { col: 8.5, row: getValidRow(8.5) + 0.5, text: "Music: Web Audio API" },
+        { col: 8.5, row: getValidRow(8.5) + 0.5, text: "Music: SoundHelix" },
         { col: 13, row: getValidRow(13), text: "Graphics: Canvas 2D" },
         { col: 20, row: getValidRow(20), text: "The password is at the end of the track after 500 blocks!" },
         { col: 498, row: getValidRow(498), text: "Password: ViennaCore" }
@@ -2055,14 +1957,22 @@ function draw() {
     }
     
     if (isCredits) {
-        ctx.fillStyle = '#0ff';
         ctx.font = 'bold 22px "Orbitron", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#0ff';
         creditsTextNodes.forEach(node => {
-            ctx.fillText(node.text, node.col * 150 + 75, node.row * 150 + 75);
+            let cx = node.col * 150 + 75;
+            let cy = node.row * 150 + 75;
+            
+            let textWidth = ctx.measureText(node.text).width;
+            ctx.fillStyle = 'rgba(10, 10, 16, 0.8)';
+            ctx.shadowBlur = 0;
+            ctx.fillRect(cx - textWidth/2 - 10, cy - 15, textWidth + 20, 30);
+            
+            ctx.fillStyle = '#0ff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#0ff';
+            ctx.fillText(node.text, cx, cy);
         });
         ctx.shadowBlur = 0;
     }
