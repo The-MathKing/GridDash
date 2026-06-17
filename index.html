@@ -536,7 +536,7 @@ const themes = [
 
 let currentThemeIndex = 0;
 try { currentThemeIndex = parseInt(localStorage.getItem('pathlockTheme')) || 0; } catch (e) {}
-if (!unlockedThemes.includes(currentThemeIndex)) currentThemeIndex = 0;
+if (highScore < themes[currentThemeIndex].unlockScore && !devUnlockAll) currentThemeIndex = 0;
 
 // Soundtrack Setup
 const soundtracks = ['Lo-Fi Chill', 'Arcade Fast', 'Ambient Dark'];
