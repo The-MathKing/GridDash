@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Pathlock - Endless Puzzle Runner</title>
 <style>
     body {
@@ -28,6 +28,7 @@
         width: 100%;
         height: 100%;
         cursor: crosshair;
+        touch-action: none;
     }
     #uiLayer {
         position: absolute;
@@ -316,7 +317,6 @@
     <div id="coinDisplay" class="hud" style="display: none; top: 60px; left: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">Coins: <span id="coinValue">0</span></div>
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
     <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
-    <button id="fullscreenBtn" style="position: absolute; top: 20px; right: 20px; z-index: 100; font-size: 24px; padding: 5px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">⛶</button>
     <button id="reloadTutorialBtn" style="display: none; position: absolute; top: 20px; right: 80px; z-index: 100; font-size: 16px; padding: 8px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">Reload Tutorial</button>
     
     <div id="uiLayer">
@@ -334,8 +334,7 @@
             
             <div style="display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 500px;">
                 <div class="skin-selector" style="flex: 1;">
-                    <div style="color: #0ff; margin-bottom: 5px; font-size: 14px; text-transform: uppercase;">Skin</div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%;">
                         <button id="prevSkinBtn" class="arrow-btn">&lt;</button>
                         <div class="skin-display">
                             <div class="skin-box-container">
@@ -350,8 +349,7 @@
                 </div>
                 
                 <div class="skin-selector" style="flex: 1;">
-                    <div style="color: #0ff; margin-bottom: 5px; font-size: 14px; text-transform: uppercase;">Theme</div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%;">
                         <button id="prevThemeBtn" class="arrow-btn">&lt;</button>
                         <div class="skin-display">
                             <div class="skin-box-container" style="border: 1px solid #fff;">
@@ -387,10 +385,6 @@
             <div style="margin-bottom: 20px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #0ff;">
                 <h3 style="margin-top: 0; color: #0ff;">Audio</h3>
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
-                    Soundtrack
-                    <button id="soundtrackSelectBtn" style="width: 100px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #fff; border: 1px solid #aaa; cursor: pointer;">Lo-Fi Chill</button>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
                     Mute Sounds
                     <button id="muteToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
                 </div>
@@ -403,11 +397,11 @@
             <div style="margin-bottom: 30px; text-align: left; width: 300px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #f0f;">
                 <h3 style="margin-top: 0; color: #f0f;">Developer Settings</h3>
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 18px; color: #fff; margin-bottom: 10px;">
-                    Unlock All Skins
+                    Unlock All Skins & Maps
                     <button id="devUnlockToggleBtn" style="width: 60px; height: 30px; font-size: 14px; padding: 0; background: #333; color: #aaa; border: 1px solid #aaa; cursor: pointer;">OFF</button>
                 </div>
                 <div style="display: flex; flex-direction: column; font-size: 18px; color: #fff;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                         Custom Speed <span id="devSpeedText">150</span>
                     </div>
                     <input type="range" id="devSpeedSlider" min="50" max="500" step="10" value="150" style="margin: 0;">
@@ -767,9 +761,6 @@ function updateStoreUI() {
         startBtn.innerText = 'Locked';
     }
 
-    // Soundtrack Option
-    let soundtrackBtn = document.getElementById('soundtrackSelectBtn');
-    soundtrackBtn.innerText = soundtracks[currentSoundtrackIndex];
 }
 
 document.getElementById('prevSkinBtn').addEventListener('click', () => {
@@ -790,11 +781,38 @@ document.getElementById('buySkinBtn').addEventListener('click', () => {
         try { 
             localStorage.setItem('pathlockCoins', coins);
             localStorage.setItem('pathlockUnlockedSkins', JSON.stringify(unlockedSkins));
+        } catch (e) {}
+        updateStoreUI();
+    }
 });
 
-document.getElementById('nextSkinBtn').addEventListener('click', () => {
-    currentSkinIndex = (currentSkinIndex + 1) % skins.length;
-    updateSkinUI();
+document.getElementById('prevThemeBtn').addEventListener('click', () => {
+    currentThemeIndex = (currentThemeIndex - 1 + themes.length) % themes.length;
+    updateStoreUI();
+    if (bgmInterval || (audioCtx && audioCtx.state === 'running')) {
+        startBGM();
+    }
+});
+
+document.getElementById('nextThemeBtn').addEventListener('click', () => {
+    currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+    updateStoreUI();
+    if (bgmInterval || (audioCtx && audioCtx.state === 'running')) {
+        startBGM();
+    }
+});
+
+document.getElementById('buyThemeBtn').addEventListener('click', () => {
+    let theme = themes[currentThemeIndex];
+    if (coins >= theme.price && !unlockedThemes.includes(currentThemeIndex)) {
+        coins -= theme.price;
+        unlockedThemes.push(currentThemeIndex);
+        try { 
+            localStorage.setItem('pathlockCoins', coins);
+            localStorage.setItem('pathlockUnlockedThemes', JSON.stringify(unlockedThemes));
+        } catch (e) {}
+        updateStoreUI();
+    }
 });
 
 document.getElementById('creditsBtn').addEventListener('click', () => {
@@ -880,13 +898,14 @@ function startBGM() {
     bgmGain.connect(audioCtx.destination);
     
     let chords, tempo, waveType, beatPattern;
+    let trackIndex = currentThemeIndex % 3; // 3 soundtracks available
     
-    if (currentSoundtrackIndex === 0) { // Lo-Fi Chill
+    if (trackIndex === 0) { // Lo-Fi Chill
         chords = [ [261.63, 329.63, 392.00, 493.88], [220.00, 261.63, 329.63, 392.00], [174.61, 220.00, 261.63, 329.63], [196.00, 246.94, 293.66, 349.23] ];
         tempo = 1.5;
         waveType = 'triangle';
         beatPattern = 'lofi';
-    } else if (currentSoundtrackIndex === 1) { // Arcade Fast
+    } else if (trackIndex === 1) { // Arcade Fast
         chords = [ [440, 523.25, 659.25], [349.23, 440, 523.25], [392, 493.88, 587.33], [329.63, 392, 493.88] ];
         tempo = 0.5;
         waveType = 'square';
@@ -1023,7 +1042,7 @@ window.onload = () => {
         setTimeout(() => {
             loadingScreen.style.display = 'none';
             gameState = 'MENU';
-            updateSkinUI();
+            updateStoreUI();
             showPanel('mainMenuPanel');
         }, 1000);
     }, 3500);
@@ -1286,7 +1305,7 @@ function crashRunner(exitSide) {
         document.getElementById('lastScoreDisplay').style.display = 'block';
         document.getElementById('lastScoreValue').innerText = Math.floor(score);
         
-        updateSkinUI();
+        updateStoreUI();
     }, 1500);
 }
 
@@ -1466,7 +1485,7 @@ function update(dt) {
             
             let nextTileObj = grid.get(nextCol)[nextRow];
             
-            if (!nextTileObj.sides.includes(nextEntrySide)) {
+            if (!nextTileObj || !nextTileObj.sides.includes(nextEntrySide)) {
                 crashRunner(exitSide);
                 return;
             }
@@ -1730,27 +1749,6 @@ canvas.addEventListener('mousedown', handleInteraction);
 canvas.addEventListener('touchstart', handleInteraction, {passive: false});
 
 document.getElementById('mainButton').addEventListener('click', prepareStartGame);
-
-document.getElementById('fullscreenBtn').addEventListener('click', () => {
-    let elem = document.documentElement;
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(e => console.log(e));
-        } else if (elem.webkitRequestFullscreen) { /* Safari */
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { /* IE11 */
-            elem.msRequestFullscreen();
-        }
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { /* Safari */
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { /* IE11 */
-            document.msExitFullscreen();
-        }
-    }
-});
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') {
