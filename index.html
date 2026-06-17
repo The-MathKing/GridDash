@@ -498,8 +498,8 @@ let runner = {
     fallX: 0, fallY: 0, vx: 0, vy: 0
 };
 
-let baseSpeed = 150;
-let speed = 150;
+let baseSpeed = 100;
+let speed = 100;
 let score = 0;
 let totalDistanceThisRun = 0;
 let highScore = 0;
@@ -1488,7 +1488,7 @@ function startGame() {
     totalDistanceThisRun = 0;
     lastTime = 0;
     
-    let baseSpd = 150; // Normal difficulty speed
+    let baseSpd = 100; // Normal difficulty speed
     baseSpeed = customSpeedOverride ? customSpeedOverride : baseSpd;
     speed = baseSpeed;
     
@@ -1622,7 +1622,7 @@ function update(dt) {
     if (gameState !== 'PLAYING') return;
 
     let blocksTraveled = Math.floor(totalDistanceThisRun / 150);
-    let targetSpeed = baseSpeed * Math.pow(1.01, Math.floor(blocksTraveled / 10));
+    let targetSpeed = baseSpeed * Math.pow(1.02, Math.floor(blocksTraveled / 10));
     
     if (isTutorial && tutorialStep === 0 && runner.col === 3) {
         let nextTileObj = grid.get(4) ? grid.get(4)[1] : null;
