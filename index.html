@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GridDash - Endless Puzzle Runner</title>
+<title>Pathlock - Endless Puzzle Runner</title>
 <style>
     body {
         margin: 0;
@@ -282,36 +282,23 @@
         justify-content: center;
         align-items: center;
         z-index: 100;
-        transition: opacity 0.5s ease;
+        transition: opacity 1s ease;
     }
     .loading-text {
-        color: #0ff;
-        font-size: 32px;
+        color: #fff;
+        font-size: 36px;
         letter-spacing: 5px;
-        margin-bottom: 20px;
-        text-shadow: 0 0 15px #0ff;
+        opacity: 0;
+        animation: cinematicFade 3.5s forwards;
+        text-shadow: 0 0 20px #fff;
+        text-transform: uppercase;
+        text-align: center;
     }
-    .loading-track {
-        width: 300px;
-        height: 4px;
-        background: #223;
-        position: relative;
-        border-radius: 2px;
-    }
-    .loading-runner {
-        position: absolute;
-        top: -8px;
-        left: 0;
-        width: 20px;
-        height: 20px;
-        background: #0ff;
-        box-shadow: 0 0 15px #0ff;
-        animation: loadingRun 1.5s infinite ease-in-out;
-    }
-    @keyframes loadingRun {
-        0% { left: 0; transform: rotate(0deg); }
-        50% { left: 280px; transform: rotate(180deg); }
-        100% { left: 0; transform: rotate(360deg); }
+    @keyframes cinematicFade {
+        0% { opacity: 0; filter: blur(10px); }
+        30% { opacity: 1; filter: blur(0px); }
+        70% { opacity: 1; filter: blur(0px); }
+        100% { opacity: 0; filter: blur(5px); }
     }
 </style>
 </head>
@@ -326,6 +313,7 @@
             <div id="scoreProgressBar"></div>
         </div>
     </div>
+    <div id="coinDisplay" class="hud" style="display: none; top: 60px; left: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">Coins: <span id="coinValue">0</span></div>
     <div id="highScoreDisplay" class="hud" style="display: none;">High Score: 0</div>
     <div id="countdownOverlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 120px; font-weight: bold; color: #fff; text-shadow: 0 0 30px #0ff; z-index: 50; pointer-events: none;">3</div>
     <button id="fullscreenBtn" style="position: absolute; top: 20px; right: 20px; z-index: 100; font-size: 24px; padding: 5px 15px; background: rgba(0,0,0,0.5); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">⛶</button>
@@ -333,10 +321,14 @@
     <div id="uiLayer">
         <!-- Main Menu Panel -->
         <div id="mainMenuPanel" class="panel">
-            <h1>GridDash</h1>
+            <h1>Pathlock</h1>
             
             <div id="lastScoreDisplay" class="stats" style="display: none; font-size: 20px;">
                 Last Score: <span id="lastScoreValue">0</span>
+            </div>
+            
+            <div id="menuCoinDisplay" class="stats" style="font-size: 24px; color: #ffd700; margin-bottom: 20px; text-shadow: 0 0 10px #ffd700;">
+                Coins: <span id="menuCoinValue">0</span>
             </div>
             
             <div class="skin-selector">
@@ -345,8 +337,9 @@
                     <div class="skin-box-container">
                         <canvas id="skinPreviewCanvas" class="skin-canvas" width="40" height="40"></canvas>
                     </div>
-                    <div id="skinName">Classic</div>
-                    <div id="skinStatus">Unlocked</div>
+                    <div id="skinName">Classic Square</div>
+                    <div id="skinStatus" style="margin-bottom: 5px;">Unlocked</div>
+                    <button id="buySkinBtn" style="display: none; padding: 5px 10px; font-size: 14px; cursor: pointer; border: 1px solid #0ff; background: rgba(0,0,0,0.5); color: #0ff; border-radius: 3px;">Buy</button>
                 </div>
                 <button id="nextSkinBtn" class="arrow-btn">&gt;</button>
             </div>
@@ -394,10 +387,7 @@
     </div>
     
     <div id="loadingScreen">
-        <div class="loading-text">LOADING...</div>
-        <div class="loading-track">
-            <div class="loading-runner"></div>
-        </div>
+        <div class="loading-text">presented by<br>Vienna Studios</div>
     </div>
 </div>
 
@@ -432,7 +422,7 @@ let speed = 150;
 let score = 0;
 let totalDistanceThisRun = 0;
 let highScore = 0;
-try { highScore = parseInt(localStorage.getItem('gridDashHighScore')) || 0; } catch (e) {}
+try { highScore = parseInt(localStorage.getItem('pathlockHighScore')) || 0; } catch (e) {}
 
 let cameraX = -75;
 let lastTime = 0;
@@ -446,17 +436,41 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+let coins = 0;
+try { coins = parseInt(localStorage.getItem('pathlockCoins')) || 0; } catch (e) {}
+
+let unlockedSkins = [0];
+try { 
+    let stored = localStorage.getItem('pathlockUnlockedSkins');
+    if (stored) unlockedSkins = JSON.parse(stored);
+} catch (e) {}
+
 // Skins Setup
 const skins = [
-    { name: 'Classic', pattern: 'solid', color: '#f0f', requiredScore: 0 },
-    { name: 'Stripes', pattern: 'stripes', color: '#0ff', requiredScore: 500 },
-    { name: 'Dots', pattern: 'dots', color: '#0f0', requiredScore: 1500 },
-    { name: 'Checker', pattern: 'checker', color: '#ff0', requiredScore: 3000 },
-    { name: 'King', pattern: 'crown', color: '#f80', requiredScore: 5000 }
+    { name: 'Classic Square', pattern: 'solid', color: '#f0f', shape: 'square', price: 0 },
+    { name: 'Cyan Stripes', pattern: 'stripes', color: '#0ff', shape: 'square', price: 5 },
+    { name: 'Green Dots', pattern: 'dots', color: '#0f0', shape: 'square', price: 10 },
+    { name: 'Yellow Checker', pattern: 'checker', color: '#ff0', shape: 'square', price: 15 },
+    { name: 'Blue Diamond', pattern: 'solid', color: '#00f', shape: 'diamond', price: 20 },
+    { name: 'Red Triangle', pattern: 'solid', color: '#f00', shape: 'triangle', price: 25 },
+    { name: 'Orange Star', pattern: 'solid', color: '#fa0', shape: 'star', price: 30 },
+    { name: 'Purple Outline', pattern: 'outline', color: '#80f', shape: 'square', price: 35 },
+    { name: 'White Pulse', pattern: 'pulse', color: '#fff', shape: 'square', price: 40 },
+    { name: 'Mint Hexagon', pattern: 'solid', color: '#0f8', shape: 'hexagon', price: 45 },
+    { name: 'Pink Cross', pattern: 'cross', color: '#f08', shape: 'square', price: 50 },
+    { name: 'Gold Ring', pattern: 'outline', color: '#fd0', shape: 'circle', price: 55 },
+    { name: 'Teal Sparkle', pattern: 'sparkle', color: '#0df', shape: 'square', price: 60 },
+    { name: 'Crimson Double', pattern: 'double', color: '#d00', shape: 'square', price: 65 },
+    { name: 'Silver Shield', pattern: 'solid', color: '#ccc', shape: 'shield', price: 70 },
+    { name: 'Neon Eye', pattern: 'eye', color: '#0f0', shape: 'circle', price: 75 },
+    { name: 'Shadow Box', pattern: 'shadow', color: '#333', shape: 'square', price: 80 },
+    { name: 'Prism Triangle', pattern: 'prism', color: '#fff', shape: 'triangle', price: 85 },
+    { name: 'Plasma Orb', pattern: 'plasma', color: '#0cf', shape: 'circle', price: 90 },
+    { name: 'Vienna Crown', pattern: 'crown', color: '#fd0', shape: 'crown', price: 100 }
 ];
 let currentSkinIndex = 0;
-try { currentSkinIndex = parseInt(localStorage.getItem('gridDashSkin')) || 0; } catch (e) {}
-if (highScore < skins[currentSkinIndex].requiredScore) currentSkinIndex = 0; 
+try { currentSkinIndex = parseInt(localStorage.getItem('pathlockSkin')) || 0; } catch (e) {}
+if (!unlockedSkins.includes(currentSkinIndex)) currentSkinIndex = 0;
 
 // Levels Setup
 const levels = [
@@ -509,16 +523,55 @@ function drawSkinPattern(context, skin, x, y, scale = 1, rotation = 0) {
     context.scale(scale, scale);
     context.rotate(rotation);
     
-    context.fillStyle = "#fff";
-    context.fillRect(-12, -12, 24, 24);
+    // Draw base shape
+    context.beginPath();
+    let isOutline = skin.pattern === 'outline';
+    if (skin.shape === 'square' || !skin.shape) {
+        context.rect(-12, -12, 24, 24);
+    } else if (skin.shape === 'circle') {
+        context.arc(0, 0, 12, 0, Math.PI * 2);
+    } else if (skin.shape === 'triangle') {
+        context.moveTo(0, -12); context.lineTo(12, 12); context.lineTo(-12, 12); context.closePath();
+    } else if (skin.shape === 'diamond') {
+        context.moveTo(0, -14); context.lineTo(14, 0); context.lineTo(0, 14); context.lineTo(-14, 0); context.closePath();
+    } else if (skin.shape === 'star') {
+        for(let i=0; i<5; i++) {
+            context.lineTo(Math.cos( (18+i*72)/180*Math.PI )*12, -Math.sin( (18+i*72)/180*Math.PI )*12);
+            context.lineTo(Math.cos( (54+i*72)/180*Math.PI )*5, -Math.sin( (54+i*72)/180*Math.PI )*5);
+        }
+        context.closePath();
+    } else if (skin.shape === 'hexagon') {
+        for(let i=0; i<6; i++) {
+            context.lineTo(12 * Math.cos(i * Math.PI / 3), 12 * Math.sin(i * Math.PI / 3));
+        }
+        context.closePath();
+    } else if (skin.shape === 'shield') {
+        context.moveTo(-10, -12); context.lineTo(10, -12); context.lineTo(10, 0); 
+        context.quadraticCurveTo(10, 12, 0, 16); context.quadraticCurveTo(-10, 12, -10, 0); context.closePath();
+    } else if (skin.shape === 'crown') {
+        context.moveTo(-12, 10); context.lineTo(12, 10); context.lineTo(12, -4);
+        context.lineTo(6, 4); context.lineTo(0, -10); context.lineTo(-6, 4); context.lineTo(-12, -4); context.closePath();
+    }
+
+    if (isOutline) {
+        context.strokeStyle = skin.color;
+        context.lineWidth = 3;
+        context.stroke();
+    } else {
+        context.fillStyle = "#fff";
+        context.fill();
+    }
     
     context.fillStyle = skin.color;
+    if (!isOutline) context.clip();
+    
+    let t = Date.now() / 1000;
     
     if (skin.pattern === 'solid') {
-        context.fillRect(-6, -6, 12, 12);
+        if (!isOutline) context.fillRect(-8, -8, 16, 16);
     } else if (skin.pattern === 'stripes') {
-        context.fillRect(-12, -8, 24, 4);
-        context.fillRect(-12, 4, 24, 4);
+        context.fillRect(-15, -8, 30, 4);
+        context.fillRect(-15, 4, 30, 4);
     } else if (skin.pattern === 'dots') {
         let r = 3;
         context.beginPath(); context.arc(-6, -6, r, 0, Math.PI*2); context.fill();
@@ -528,16 +581,35 @@ function drawSkinPattern(context, skin, x, y, scale = 1, rotation = 0) {
     } else if (skin.pattern === 'checker') {
         context.fillRect(-12, -12, 12, 12);
         context.fillRect(0, 0, 12, 12);
+    } else if (skin.pattern === 'pulse') {
+        let p = 10 + Math.sin(t * 5) * 4;
+        context.fillRect(-p/2, -p/2, p, p);
+    } else if (skin.pattern === 'cross') {
+        context.fillRect(-12, -3, 24, 6);
+        context.fillRect(-3, -12, 6, 24);
+    } else if (skin.pattern === 'sparkle') {
+        context.beginPath(); context.arc(Math.cos(t*4)*6, Math.sin(t*5)*6, 3, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(Math.cos(t*3+1)*5, Math.sin(t*2+2)*5, 2, 0, Math.PI*2); context.fill();
+    } else if (skin.pattern === 'double') {
+        context.fillRect(-10, -5, 6, 10);
+        context.fillRect(4, -5, 6, 10);
+    } else if (skin.pattern === 'eye') {
+        context.fillStyle = "#000";
+        context.beginPath(); context.arc(0, 0, 8, 0, Math.PI*2); context.fill();
+        context.fillStyle = skin.color;
+        context.beginPath(); context.arc(0, 0, 4, 0, Math.PI*2); context.fill();
+    } else if (skin.pattern === 'shadow') {
+        context.fillStyle = "#000";
+        context.fillRect(-10, -10, 20, 20);
+    } else if (skin.pattern === 'prism') {
+        context.fillStyle = `hsl(${(t*100)%360}, 100%, 50%)`;
+        context.fillRect(-12, -12, 24, 24);
+    } else if (skin.pattern === 'plasma') {
+        let r = 8 + Math.sin(t*8)*2;
+        context.beginPath(); context.arc(0, 0, r, 0, Math.PI*2); context.fill();
     } else if (skin.pattern === 'crown') {
-        context.beginPath();
-        context.moveTo(-10, 8);
-        context.lineTo(10, 8);
-        context.lineTo(10, -4);
-        context.lineTo(4, 2);
-        context.lineTo(0, -8);
-        context.lineTo(-4, 2);
-        context.lineTo(-10, -4);
-        context.fill();
+        context.fillStyle = skin.color;
+        context.beginPath(); context.arc(0, 2, 4, 0, Math.PI*2); context.fill();
     }
     
     context.restore();
@@ -548,23 +620,50 @@ function updateSkinUI() {
     document.getElementById('skinName').innerText = skin.name;
     
     skinCtx.clearRect(0, 0, 40, 40);
-    // Draw centered on 40x40 canvas
     drawSkinPattern(skinCtx, skin, 20, 20, 1.2, 0);
-    skinCanvas.style.color = skin.color; // for shadow
+    skinCanvas.style.color = skin.color;
     
-    if (highScore >= skin.requiredScore) {
-        document.getElementById('skinStatus').innerText = 'Unlocked';
-        document.getElementById('skinStatus').style.color = '#aaa';
-        document.getElementById('mainButton').disabled = false;
-        document.getElementById('mainButton').innerText = 'Start Game';
+    document.getElementById('menuCoinValue').innerText = coins;
+    
+    let isUnlocked = unlockedSkins.includes(currentSkinIndex);
+    let buyBtn = document.getElementById('buySkinBtn');
+    let statusDiv = document.getElementById('skinStatus');
+    let startBtn = document.getElementById('mainButton');
+    
+    if (isUnlocked) {
+        statusDiv.innerText = 'Unlocked';
+        statusDiv.style.color = '#aaa';
+        statusDiv.style.display = 'block';
+        buyBtn.style.display = 'none';
+        
+        startBtn.disabled = false;
+        startBtn.innerText = 'Start Game';
     } else {
-        document.getElementById('skinStatus').innerText = `Reach score ${skin.requiredScore}`;
-        document.getElementById('skinStatus').style.color = '#f55';
-        document.getElementById('mainButton').disabled = true;
-        document.getElementById('mainButton').innerText = 'Locked';
+        statusDiv.style.display = 'none';
+        buyBtn.style.display = 'inline-block';
+        buyBtn.innerText = `Buy (${skin.price} Coins)`;
+        buyBtn.disabled = coins < skin.price;
+        buyBtn.style.opacity = buyBtn.disabled ? '0.5' : '1.0';
+        
+        startBtn.disabled = true;
+        startBtn.innerText = 'Locked';
     }
-    try { localStorage.setItem('gridDashSkin', currentSkinIndex); } catch (e) {}
+    try { localStorage.setItem('pathlockSkin', currentSkinIndex); } catch (e) {}
 }
+
+document.getElementById('buySkinBtn').addEventListener('click', () => {
+    let skin = skins[currentSkinIndex];
+    if (coins >= skin.price && !unlockedSkins.includes(currentSkinIndex)) {
+        coins -= skin.price;
+        unlockedSkins.push(currentSkinIndex);
+        try {
+            localStorage.setItem('pathlockCoins', coins);
+            localStorage.setItem('pathlockUnlockedSkins', JSON.stringify(unlockedSkins));
+        } catch(e) {}
+        updateSkinUI();
+        playMilestone();
+    }
+});
 
 document.getElementById('prevSkinBtn').addEventListener('click', () => {
     currentSkinIndex = (currentSkinIndex - 1 + skins.length) % skins.length;
@@ -656,8 +755,8 @@ window.onload = () => {
             gameState = 'MENU';
             updateSkinUI();
             showPanel('mainMenuPanel');
-        }, 500);
-    }, 1500);
+        }, 1000);
+    }, 3500);
 };
 
 // --- Pause Logic ---
@@ -750,6 +849,11 @@ function generateColumn(c, isScrambled = true) {
                 tiles[r].sides[1] = (tiles[r].sides[1] + 1) % 4;
             }
         }
+        
+        // Randomly spawn a coin on the tile
+        if (Math.random() < 0.25) {
+            tiles[r].hasCoin = true;
+        }
     }
     grid.set(c, tiles);
     nextValidRow = r_out;
@@ -797,9 +901,11 @@ function startGame() {
     showPanel(null); // Hide UI
     scoreDisplay.style.display = 'block';
     highScoreDisplay.style.display = 'block';
+    document.getElementById('coinDisplay').style.display = 'block';
     
     document.getElementById('scoreText').innerText = `Score: 0`;
     highScoreDisplay.innerText = `High Score: ${Math.floor(highScore)}`;
+    document.getElementById('coinValue').innerText = coins;
 }
 
 function crashRunner(exitSide) {
@@ -821,7 +927,7 @@ function crashRunner(exitSide) {
     
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('gridDashHighScore', highScore); } catch (e) {}
+        try { localStorage.setItem('pathlockHighScore', highScore); } catch (e) {}
     }
     
     setTimeout(() => {
@@ -829,11 +935,12 @@ function crashRunner(exitSide) {
         showPanel('mainMenuPanel');
         document.getElementById('scoreDisplay').style.display = 'none';
         document.getElementById('highScoreDisplay').style.display = 'none';
+        document.getElementById('coinDisplay').style.display = 'none';
         
         document.getElementById('lastScoreDisplay').style.display = 'block';
         document.getElementById('lastScoreValue').innerText = Math.floor(score);
         
-        updateSkinUI(); // Unlock new skins if high score increased
+        updateSkinUI();
     }, 1500);
 }
 
@@ -939,7 +1046,19 @@ function update(dt) {
         let remainingPath = pathLength - runner.distance;
 
         if (distToMove <= remainingPath) {
+            let oldDist = runner.distance;
             runner.distance += distToMove;
+            
+            let halfPath = pathLength / 2;
+            if (tObj.hasCoin && oldDist < halfPath && runner.distance >= halfPath) {
+                tObj.hasCoin = false;
+                coins += 1;
+                document.getElementById('coinValue').innerText = coins;
+                playTone(1200, 'sine', 0.1, 0.1);
+                let p = getRunnerXY();
+                spawnParticles(p.x, p.y, 15, '#ffd700', 100, 0.5, true);
+            }
+            
             score += distToMove * 0.1;
             document.getElementById('scoreText').innerText = `Score: ${Math.floor(score)}`;
             distToMove = 0;
@@ -1054,6 +1173,19 @@ function drawTile(ctx, tile, x, y, isCurrent) {
         ctx.lineTo(66, 80);
     }
     ctx.fill();
+    
+    if (tile.hasCoin) {
+        ctx.save();
+        ctx.translate(75, 75);
+        ctx.rotate(Date.now() / 300);
+        ctx.fillStyle = "#ffd700";
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#ffd700";
+        ctx.beginPath();
+        ctx.moveTo(0, -10); ctx.lineTo(10, 0); ctx.lineTo(0, 10); ctx.lineTo(-10, 0);
+        ctx.fill();
+        ctx.restore();
+    }
 
     ctx.restore();
 }
