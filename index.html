@@ -473,6 +473,7 @@ try { highScore = parseInt(localStorage.getItem('pathlockHighScore')) || 0; } ca
 let cameraX = -75;
 let lastTime = 0;
 let audioCtx = null;
+let masterCompressor = null;
 let masterVolume = 0.5;
 let isMuted = false;
 let devUnlockAll = false;
@@ -844,7 +845,16 @@ let bgmInterval = null;
 let currentChordIdx = 0;
 
 function initAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(30, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+        masterCompressor.connect(audioCtx.destination);
+    }
     if (audioCtx.state === 'suspended') audioCtx.resume();
     startBGM();
 }
@@ -861,7 +871,7 @@ function startBGM() {
     
     bgmGain = audioCtx.createGain();
     bgmGain.gain.value = isMuted ? 0 : masterVolume * 0.4;
-    bgmGain.connect(audioCtx.destination);
+    bgmGain.connect(masterCompressor);
     
     let chords, tempo, waveType, beatPattern;
     let trackIndex = currentThemeIndex; // 5 soundtracks available
@@ -965,7 +975,7 @@ function startBGM() {
 
 function playTone(freq, type, duration, vol=0.1) {
     if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
-    let finalVol = vol * masterVolume;
+    let finalVol = Math.max(0.01, vol * masterVolume);
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
@@ -973,14 +983,14 @@ function playTone(freq, type, duration, vol=0.1) {
     gain.gain.setValueAtTime(finalVol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(masterCompressor);
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
 }
 
 function playSweep(startFreq, endFreq, type, duration, vol=0.1) {
     if (!audioCtx || audioCtx.state !== 'running' || isMuted) return;
-    let finalVol = vol * masterVolume;
+    let finalVol = Math.max(0.01, vol * masterVolume);
     let osc = audioCtx.createOscillator();
     let gain = audioCtx.createGain();
     osc.type = type;
@@ -989,7 +999,7 @@ function playSweep(startFreq, endFreq, type, duration, vol=0.1) {
     gain.gain.setValueAtTime(finalVol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(masterCompressor);
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
 }
