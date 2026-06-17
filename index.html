@@ -376,9 +376,9 @@
             
             <button id="mainButton">Start Game</button>
             <div class="btn-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 320px; align-items: center; justify-items: center; margin: 0 auto;">
+                <button id="skinsAndMapsBtn" class="secondary-btn" style="width: 100%;">Skins</button>
                 <button id="tutorialBtn" class="secondary-btn" style="width: 100%;">Tutorial</button>
                 <button id="optionsBtn" class="secondary-btn" style="width: 100%;">Options</button>
-                <button id="skinsAndMapsBtn" class="secondary-btn" style="width: 100%;">Skins</button>
                 <button id="creditsBtn" class="secondary-btn" style="width: 100%;">Credits</button>
             </div>
         </div>
@@ -503,7 +503,7 @@ let speed = 150;
 let score = 0;
 let totalDistanceThisRun = 0;
 let highScore = 0;
-try { highScore = parseInt(localStorage.getItem('pathlockHighScore')) || 0; } catch (e) {}
+try { highScore = parseInt(localStorage.getItem('pathlockHighScoreV2')) || 0; } catch (e) {}
 
 let cameraX = -75;
 let lastTime = 0;
@@ -844,10 +844,7 @@ function renderInventory() {
         itemDiv.style.position = 'relative';
         itemDiv.style.cursor = 'pointer';
         itemDiv.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        if (!isUnlocked) {
-            itemDiv.style.opacity = '0.3';
-            itemDiv.style.filter = 'grayscale(100%)';
-        } else if (idx === newlyUnlockedIdx) {
+        if (idx === newlyUnlockedIdx) {
             itemDiv.classList.add('new-skin-anim');
             itemDiv.style.border = '3px solid #ff0';
             itemDiv.style.boxShadow = '0 0 20px #ff0';
@@ -863,6 +860,10 @@ function renderInventory() {
         cvs.style.width = '100%';
         cvs.style.height = '100%';
         cvs.style.color = skin.color;
+        if (!isUnlocked) {
+            cvs.style.opacity = '0.3';
+            cvs.style.filter = 'grayscale(100%)';
+        }
         itemDiv.appendChild(cvs);
         
         let ctx = cvs.getContext('2d');
@@ -1531,7 +1532,7 @@ function crashRunner(exitSide) {
     
     if (!isTutorial && score > highScore) {
         highScore = score;
-        try { localStorage.setItem('pathlockHighScore', highScore); } catch (e) {}
+        try { localStorage.setItem('pathlockHighScoreV2', highScore); } catch (e) {}
     }
     
     setTimeout(() => {
